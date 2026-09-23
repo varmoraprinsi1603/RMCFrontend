@@ -47,19 +47,14 @@ function App() {
             path="tickets"
             element={<TicketMaster />}
           />
-
+  
           {/* User Management */}
           <Route
             path="users"
             element={<UserManagement />}
           />
 
-          {/* Reports */}
-          <Route
-            path="reports"
-            element={<Reports />}
-          />
-        </Route>
+          </Route>
 
         {/* App open hote hi LOGIN */}
         <Route

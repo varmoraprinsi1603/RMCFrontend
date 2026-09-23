@@ -38,19 +38,38 @@ function Login() {
 
       const data = await response.json();
 
-     if (response.ok && data.token) {
+    if (response.ok && data.token) {
+
     localStorage.setItem("token", data.token);
-    localStorage.setItem("RoleID", data.data.roleID);
-    localStorage.setItem("RoleName", data.data.roleName);
-    localStorage.setItem("username", data.data.userName);
+
+    localStorage.setItem(
+        "UserID",
+        data?.data?.userID ?? data?.data?.UserID ?? ""
+    );
+
+    localStorage.setItem(
+        "RoleID",
+        data?.data?.roleID ?? data?.data?.RoleID ?? ""
+    );
+
+    localStorage.setItem(
+        "RoleName",
+        data?.data?.roleName ?? data?.data?.RoleName ?? ""
+    );
+
+    localStorage.setItem(
+        "username",
+        data?.data?.userName ?? data?.data?.UserName ?? ""
+    );
 
     if (rememberMe) {
         localStorage.setItem("rememberMe", "true");
     }
 
-    setMessage("Login successful!");
-
     console.log("Login Response:", data);
+    console.log("Logged-in UserID:", data?.data?.userID ?? data?.data?.UserID);
+
+    setMessage("Login successful!");
 
     navigate("/Dashboard");
 } else {
