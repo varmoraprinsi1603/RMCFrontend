@@ -11,6 +11,9 @@ import {
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
+  FileBarChart2,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 
 import {
@@ -27,6 +30,7 @@ function Dashboard() {
   // =====================================================
 
   const [collapsed, setCollapsed] = useState(false);
+  const [reportsOpen, setReportsOpen] = useState(true);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -202,17 +206,17 @@ function Dashboard() {
               <div className="flex items-center gap-3">
 
                 <div className="w-9 h-9 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center text-white font-bold">
-                  R
+                  S
                 </div>
 
                 <div className="leading-none">
 
                   <div className="text-white text-[16px] font-bold tracking-wide">
-                    RMC ERP
+                    Service
                   </div>
 
                   <div className="text-[#8eafc9] text-[10px] mt-1">
-                    Service Management
+                    Ticket Management
                   </div>
 
                 </div>
@@ -288,6 +292,70 @@ function Dashboard() {
           )}
 
         </div>
+
+        {/* Reports */}
+
+<div className="mt-2">
+
+  {/* Reports Main Button */}
+  <button
+    type="button"
+    onClick={() => setReportsOpen(!reportsOpen)}
+    className="w-full flex items-center gap-3 h-[43px] px-3 rounded-lg text-[13px] font-medium text-[#c7d7e7] hover:bg-[#154d7f] hover:text-white transition"
+  >
+
+    <FileBarChart2 size={18} />
+
+    {!collapsed && (
+      <>
+        <span className="flex-1 text-left">
+          Reports
+        </span>
+
+        {reportsOpen ? (
+          <ChevronDown size={15} />
+        ) : (
+          <ChevronRight size={15} />
+        )}
+      </>
+    )}
+
+  </button>
+
+  {/* Report Sub Items */}
+  {!collapsed && reportsOpen && (
+    <div className="ml-4 mt-1 pl-3 border-l border-[#315a7b] space-y-1">
+
+      <NavLink
+        to="/Dashboard/reports/ticket-summary"
+        className={({ isActive }) =>
+          `w-full flex items-center h-[36px] px-3 rounded-md text-[12px] transition ${
+            isActive
+              ? "bg-[#1b6bb3] text-white"
+              : "text-[#a9c0d5] hover:bg-[#154d7f] hover:text-white"
+          }`
+        }
+      >
+        <span>Ticket Summary</span>
+      </NavLink>
+
+      <NavLink
+        to="/Dashboard/reports/ticket-performance"
+        className={({ isActive }) =>
+          `w-full flex items-center h-[36px] px-3 rounded-md text-[12px] transition ${
+            isActive
+              ? "bg-[#1b6bb3] text-white"
+              : "text-[#a9c0d5] hover:bg-[#154d7f] hover:text-white"
+          }`
+        }
+      >
+        <span>Ticket Performance</span>
+      </NavLink>
+
+    </div>
+  )}
+
+</div>
 
         {/* ================= USER AREA ================= */}
 

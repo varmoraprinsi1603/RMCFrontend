@@ -41,20 +41,38 @@ function App() {
             </ProtectedRoute>
           }
         >
-          
+
           {/* Ticket Master */}
           <Route
             path="tickets"
             element={<TicketMaster />}
           />
-  
+
           {/* User Management */}
           <Route
             path="users"
             element={<UserManagement />}
           />
 
-          </Route>
+          {/* Reports */}
+          <Route
+            path="reports"
+            element={<Reports />}
+          />
+
+          {/* Ticket Summary */}
+          <Route
+            path="reports/ticket-summary"
+            element={<Reports />}
+          />
+
+          {/* Ticket Performance */}
+          <Route
+            path="reports/ticket-performance"
+            element={<Reports />}
+          />
+
+        </Route>
 
         {/* App open hote hi LOGIN */}
         <Route

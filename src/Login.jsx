@@ -1,20 +1,57 @@
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
+
+const LOGIN_API = "https://localhost:44319/api/UserMaster/Login";
 
 function Login() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const navigate = useNavigate();
+
+  const [formData, setFormData] = useState({
+    UserName: "",
+    Password: "",
+  });
+
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const navigate = useNavigate();
-    
+
+  useEffect(() => {
+    const savedUserName =
+      localStorage.getItem("rememberedUserName");
+
+    if (savedUserName) {
+      setFormData((prev) => ({
+        ...prev,
+        UserName: savedUserName,
+      }));
+
+      setRememberMe(true);
+    }
+  }, []);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    setMessage("");
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    if (!username || !password) {
-      setMessage("Please enter Username and Password.");
+    if (!formData.UserName.trim()) {
+      setMessage("Please enter username.");
+      return;
+    }
+
+    if (!formData.Password.trim()) {
+      setMessage("Please enter password.");
       return;
     }
 
@@ -22,368 +59,814 @@ function Login() {
     setMessage("");
 
     try {
-      const response = await fetch(
-        "https://localhost:44319/api/UserMaster/Login",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            UserName: username,
-            Password: password,
-          }),
-        }
-      );
+      const response = await fetch(LOGIN_API, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          UserName: formData.UserName,
+          Password: formData.Password,
+        }),
+      });
 
       const data = await response.json();
 
-    if (response.ok && data.token) {
+      console.log("Login Response:", data);
 
-    localStorage.setItem("token", data.token);
+      if (!response.ok || !data?.token) {
+        setMessage(
+          data?.message ||
+            data?.Message ||
+            "Invalid username or password."
+        );
 
-    localStorage.setItem(
+        return;
+      }
+
+      const userData =
+        data?.data ||
+        data?.Data ||
+        {};
+
+      localStorage.setItem("token", data.token);
+
+      localStorage.setItem(
         "UserID",
-        data?.data?.userID ?? data?.data?.UserID ?? ""
-    );
+        userData?.userID ??
+          userData?.UserID ??
+          ""
+      );
 
-    localStorage.setItem(
-        "RoleID",
-        data?.data?.roleID ?? data?.data?.RoleID ?? ""
-    );
+      localStorage.setItem(
+        "UserName",
+        userData?.userName ??
+          userData?.UserName ??
+          formData.UserName
+      );
 
-    localStorage.setItem(
+      localStorage.setItem(
         "RoleName",
-        data?.data?.roleName ?? data?.data?.RoleName ?? ""
-    );
+        userData?.roleName ??
+          userData?.RoleName ??
+          ""
+      );
 
-    localStorage.setItem(
-        "username",
-        data?.data?.userName ?? data?.data?.UserName ?? ""
-    );
+      localStorage.setItem(
+        "RoleID",
+        userData?.roleID ??
+          userData?.RoleID ??
+          ""
+      );
 
-    if (rememberMe) {
-        localStorage.setItem("rememberMe", "true");
-    }
+      if (rememberMe) {
+        localStorage.setItem(
+          "rememberedUserName",
+          formData.UserName
+        );
+      } else {
+        localStorage.removeItem(
+          "rememberedUserName"
+        );
+      }
 
-    console.log("Login Response:", data);
-    console.log("Logged-in UserID:", data?.data?.userID ?? data?.data?.UserID);
-
-    setMessage("Login successful!");
-
-    navigate("/Dashboard");
-} else {
-    setMessage(data.message || "Invalid Username or Password.");
-}
+      navigate("/Dashboard");
     } catch (error) {
-      console.error(error);
-      setMessage("Unable to connect with server.");
+      console.error("Login Error:", error);
+
+      setMessage(
+        "Unable to connect to server. Please try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#eef3f9] flex items-center justify-center p-4 overflow-hidden">
+    <div className="relative w-screen h-screen overflow-hidden bg-[#dce3ec]">
 
-      {/* Main Login Container */}
-      <div className="relative w-full max-w-[1450px] min-h-[760px] bg-white rounded-[28px] shadow-[0_25px_80px_rgba(15,45,85,0.16)] overflow-hidden flex flex-col lg:flex-row">
+      {/* =====================================================
+          FULL SCREEN BACKGROUND
+      ====================================================== */}
 
-        {/* =====================================================
-            LEFT SIDE
-        ====================================================== */}
-        <div className="relative lg:w-[53%] min-h-[500px] overflow-hidden bg-[#dceafa]">
+      <div className="absolute inset-0 bg-gradient-to-br from-[#c7d0dd] via-[#e1e6ed] to-[#f4f6f8]" />
 
-          {/* Background Image */}
-          <div
-            className="absolute inset-0 bg-cover bg-left"
-            style={{
-              backgroundImage: "url('/rmc-erp-hero.png')",
-            }}
-          />
+      {/* Soft ambient lights */}
+      <div
+        className="
+          absolute
+          -top-[20%]
+          -left-[10%]
+          w-[55vw]
+          h-[55vw]
+          rounded-full
+          bg-[#edf3f9]/70
+          blur-[100px]
+        "
+      />
 
-          {/* Blue Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-[#e7f2ff]/20 via-[#d7e9fa]/10 to-[#0d4278]/5" />
+      <div
+        className="
+          absolute
+          -bottom-[25%]
+          right-[-10%]
+          w-[60vw]
+          h-[50vw]
+          rounded-full
+          bg-[#cbd9e8]/60
+          blur-[110px]
+        "
+      />
 
-          {/* Decorative Shapes */}
-          <div className="absolute -top-32 -right-28 w-[420px] h-[420px] rounded-full bg-[#1d63aa]/20 blur-2xl" />
+      {/* =====================================================
+          FULL SCREEN SVG SCENE
+      ====================================================== */}
 
-          <div className="absolute bottom-[-130px] left-[-100px] w-[420px] h-[420px] rounded-full bg-[#1663ad]/20 blur-3xl" />
+      <svg
+        viewBox="0 0 1440 900"
+        preserveAspectRatio="xMidYMid slice"
+        className="absolute inset-0 w-full h-full"
+      >
+        <defs>
 
-          {/* Content */}
-          <div className="relative z-10 h-full min-h-[500px] lg:min-h-[760px] p-8 sm:p-12 lg:p-16 flex flex-col">
+          {/* Main blob */}
+          <linearGradient
+            id="blobGradient"
+            x1="0"
+            y1="0"
+            x2="1"
+            y2="1"
+          >
+            <stop
+              offset="0%"
+              stopColor="#ffffff"
+            />
 
-            {/* Logo */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center">
-                <span className="text-[48px] sm:text-[56px] font-black tracking-[-5px] text-[#102f58] leading-none">
-                  RM
-                </span>
+            <stop
+              offset="48%"
+              stopColor="#f4f6f8"
+            />
 
-                <span className="text-[48px] sm:text-[56px] font-black tracking-[-5px] text-[#1594e8] leading-none">
-                  C
-                </span>
-              </div>
+            <stop
+              offset="100%"
+              stopColor="#c9d1da"
+            />
+          </linearGradient>
 
-              <span className="text-[27px] sm:text-[32px] font-medium text-[#173b68]">
-                ERP
-              </span>
-            </div>
+          {/* Blob highlight */}
+          <linearGradient
+            id="blobHighlight"
+            x1="0"
+            y1="0"
+            x2="1"
+            y2="1"
+          >
+            <stop
+              offset="0%"
+              stopColor="#ffffff"
+              stopOpacity="0.9"
+            />
 
-            {/* Heading */}
-            <div className="mt-16 lg:mt-20 max-w-[500px]">
+            <stop
+              offset="100%"
+              stopColor="#ffffff"
+              stopOpacity="0"
+            />
+          </linearGradient>
 
-              <h1 className="text-4xl sm:text-5xl lg:text-[52px] font-semibold leading-[1.08] text-[#102f58] tracking-[-1.5px]">
-                Smarter Operations.
-                <br />
-                <span className="font-normal">
-                  Stronger Tomorrow.
-                </span>
-              </h1>
+          {/* Sphere */}
+          <radialGradient
+            id="sphereGradient"
+            cx="30%"
+            cy="20%"
+          >
+            <stop
+              offset="0%"
+              stopColor="#ffffff"
+            />
 
-              <p className="mt-7 text-[16px] sm:text-[17px] leading-7 text-[#29496d] max-w-[460px]">
-                Streamline your business processes with RMC ERP —
-                a complete solution for better control, higher efficiency
-                and sustainable growth.
-              </p>
+            <stop
+              offset="48%"
+              stopColor="#eef1f5"
+            />
 
-            </div>
+            <stop
+              offset="100%"
+              stopColor="#b6bec9"
+            />
+          </radialGradient>
 
-            {/* Feature List */}
-            <div className="mt-10 space-y-5">
+          {/* Blue leaves */}
+          <linearGradient
+            id="blueLeaf"
+            x1="0"
+            y1="0"
+            x2="1"
+            y2="1"
+          >
+            <stop
+              offset="0%"
+              stopColor="#4d80dc"
+            />
 
-              <Feature
-                icon="▣"
-                text="Manage Operations"
-              />
+            <stop
+              offset="100%"
+              stopColor="#183f9f"
+            />
+          </linearGradient>
 
-              <Feature
-                icon="↗"
-                text="Track Progress"
-              />
+          {/* Shadow */}
+          <filter
+            id="sceneShadow"
+            x="-30%"
+            y="-30%"
+            width="160%"
+            height="170%"
+          >
+            <feDropShadow
+              dx="0"
+              dy="25"
+              stdDeviation="25"
+              floodColor="#64748b"
+              floodOpacity="0.20"
+            />
+          </filter>
 
-              <Feature
-                icon="◉"
-                text="Improve Productivity"
-              />
+          <filter
+            id="softBlur"
+            x="-50%"
+            y="-50%"
+            width="200%"
+            height="200%"
+          >
+            <feGaussianBlur stdDeviation="22" />
+          </filter>
 
-              <Feature
-                icon="⌁"
-                text="Drive Growth"
-              />
+        </defs>
 
-            </div>
+        {/* =================================================
+            FLOOR SHADOW
+        ================================================== */}
+
+        <ellipse
+          cx="720"
+          cy="820"
+          rx="560"
+          ry="55"
+          fill="#64748b"
+          opacity="0.16"
+          filter="url(#softBlur)"
+        />
+
+        {/* =================================================
+            MAIN ORGANIC 3D SHAPE
+        ================================================== */}
+
+        <path
+          d="
+            M175 700
+
+            C115 640
+            120 555
+            165 485
+
+            C205 425
+            185 340
+            220 270
+
+            C255 200
+            330 175
+            405 215
+
+            C465 248
+            510 225
+            555 190
+
+            C625 135
+            725 145
+            775 205
+
+            C820 260
+            875 270
+            935 300
+
+            C1020 342
+            1075 420
+            1050 500
+
+            C1030 565
+            950 590
+            935 655
+
+            C920 715
+            850 760
+            775 750
+
+            C690 738
+            645 785
+            555 790
+
+            C470 795
+            415 750
+            345 770
+
+            C275 790
+            215 750
+            175 700
+
+            Z
+          "
+          fill="url(#blobGradient)"
+          filter="url(#sceneShadow)"
+        />
+
+        {/* Blob soft highlight */}
+        <path
+          d="
+            M190 625
+            C150 550 205 475 220 410
+            C240 325 230 270 300 235
+            C355 208 410 260 475 270
+            C550 280 575 210 650 205
+            C720 200 760 255 820 285
+            C885 318 975 360 985 435
+            C995 495 925 520 890 570
+            C850 630 900 690 820 715
+            C750 738 700 680 630 690
+            C550 700 500 750 425 720
+            C350 690 310 730 255 690
+            C225 670 205 650 190 625
+            Z
+          "
+          fill="url(#blobHighlight)"
+          opacity="0.55"
+        />
+
+        {/* =================================================
+            FLOATING SPHERE
+        ================================================== */}
+
+        <circle
+          cx="960"
+          cy="145"
+          r="70"
+          fill="url(#sphereGradient)"
+          filter="url(#sceneShadow)"
+        />
+
+        <ellipse
+          cx="935"
+          cy="120"
+          rx="28"
+          ry="17"
+          fill="#ffffff"
+          opacity="0.55"
+        />
+
+        {/* Small floating sphere */}
+        <circle
+          cx="1130"
+          cy="550"
+          r="22"
+          fill="url(#blueLeaf)"
+        />
+
+        {/* Small white sphere */}
+        <circle
+          cx="250"
+          cy="250"
+          r="14"
+          fill="#ffffff"
+          opacity="0.9"
+        />
+{/* =================================================
+    SOFT LIGHT BLUE GLASS BUBBLE
+================================================== */}
+
+<g transform="translate(360 380)">
+
+  {/* Soft background glow */}
+  <circle
+    cx="145"
+    cy="145"  
+    r="95"
+    fill="#dbe8f7"
+    opacity="0.20"
+    filter="url(#softBlur)"
+  />
+
+  {/* Main glass bubble */}
+  <circle
+    cx="145"
+    cy="145"
+    r="62"
+    fill="#c9dcf5"
+    opacity="0.32"
+    filter="url(#sceneShadow)"
+  />
+
+  {/* Soft white reflection */}
+  <ellipse
+    cx="125"
+    cy="120"
+    rx="25"
+    ry="15"
+    fill="#ffffff"
+    opacity="0.38"
+    transform="rotate(-25 125 120)"
+  />
+
+  {/* Small light-blue bubble */}
+  <circle
+    cx="210"
+    cy="185"
+    r="34"
+    fill="#d2e2f6"
+    opacity="0.42"
+  />
+
+  {/* Tiny floating bubble */}
+  <circle
+    cx="92"
+    cy="205"
+    r="15"
+    fill="#bcd3ef"
+    opacity="0.40"
+  />
+
+  {/* Tiny soft dot */}
+  <circle
+    cx="225"
+    cy="105"
+    r="6"
+    fill="#a9c6ea"
+    opacity="0.42"
+  />
+
+</g>
+        {/* =================================================
+            LEFT ABSTRACT DECOR
+        ================================================== */}
+
+        <path
+          d="M170 735 C130 680 125 620 155 570"
+          fill="none"
+          stroke="#64748b"
+          strokeWidth="8"
+          strokeLinecap="round"
+        />
+
+        <ellipse
+          cx="140"
+          cy="670"
+          rx="15"
+          ry="38"
+          fill="#6c89b5"
+          transform="rotate(-38 140 670)"
+        />
+
+        <ellipse
+          cx="150"
+          cy="710"
+          rx="14"
+          ry="38"
+          fill="url(#blueLeaf)"
+          transform="rotate(35 150 710)"
+        />
+
+        <ellipse
+          cx="137"
+          cy="625"
+          rx="13"
+          ry="31"
+          fill="#8799ad"
+          transform="rotate(-45 137 625)"
+        />
+
+        <ellipse
+          cx="172"
+          cy="730"
+          rx="13"
+          ry="32"
+          fill="#9db7d3"
+          transform="rotate(25 172 730)"
+        />
+
+        {/* =================================================
+            RIGHT ABSTRACT LEAVES
+        ================================================== */}
+
+        <path
+          d="M1100 750 C1160 690 1170 620 1135 555"
+          fill="none"
+          stroke="#59677a"
+          strokeWidth="9"
+          strokeLinecap="round"
+        />
+
+        <ellipse
+          cx="1150"
+          cy="655"
+          rx="16"
+          ry="40"
+          fill="#65748a"
+          transform="rotate(42 1150 655)"
+        />
+
+        <ellipse
+          cx="1140"
+          cy="700"
+          rx="17"
+          ry="42"
+          fill="url(#blueLeaf)"
+          transform="rotate(-35 1140 700)"
+        />
+
+        <ellipse
+          cx="1162"
+          cy="610"
+          rx="14"
+          ry="34"
+          fill="#718198"
+          transform="rotate(38 1162 610)"
+        />
+
+        <ellipse
+          cx="1115"
+          cy="735"
+          rx="15"
+          ry="35"
+          fill="#91aac5"
+          transform="rotate(-25 1115 735)"
+        />
+
+      </svg>
+
+      {/* =====================================================
+          LOGIN CARD
+      ====================================================== */}
+
+      <div
+        className="
+          absolute
+          top-1/2
+          left-[40%]
+          -translate-y-1/2
+          w-[360px]
+          sm:w-[390px]
+          rounded-[28px]
+          bg-white/92
+          backdrop-blur-xl
+          border
+          border-white
+          shadow-[0_25px_70px_rgba(50,70,95,0.22)]
+          px-9
+          py-9
+        "
+      >
+
+        {/* Blue circle */}
+        <div
+          className="
+            absolute
+            top-5
+            right-5
+            w-8
+            h-8
+            rounded-full
+            bg-[#3974df]
+            shadow-[0_5px_15px_rgba(55,110,220,0.35)]
+          "
+        />
+
+        {/* Heading */}
+        <h1
+          className="
+            text-[30px]
+            font-bold
+            tracking-[-1px]
+            text-[#111827]
+          "
+        >
+          Login
+        </h1>
+
+        <form
+          onSubmit={handleLogin}
+          className="mt-9"
+        >
+
+          {/* Username */}
+          <div className="mb-7">
+
+            <label
+              className="
+                block
+                text-[11px]
+                font-semibold
+                text-[#202938]
+                mb-2
+              "
+            >
+              Email Address
+            </label>
+
+            <input
+              type="text"
+              name="UserName"
+              value={formData.UserName}
+              onChange={handleChange}
+              autoComplete="username"
+              className="
+                w-full
+                h-9
+                bg-transparent
+                border-0
+                border-b
+                border-[#aeb7c3]
+                outline-none
+                text-[13px]
+                text-[#1f2937]
+                px-1
+                transition
+                focus:border-[#3974df]
+              "
+            />
 
           </div>
-        </div>
 
-        {/* =====================================================
-            RIGHT SIDE LOGIN
-        ====================================================== */}
-        <div className="lg:w-[47%] flex items-center justify-center bg-[#fbfcfe] p-6 sm:p-10 lg:p-16">
+          {/* Password */}
+          <div className="mb-6">
 
-          <div className="w-full max-w-[510px]">
+            <label
+              className="
+                block
+                text-[11px]
+                font-semibold
+                text-[#202938]
+                mb-2
+              "
+            >
+              Password
+            </label>
 
-            {/* Login Card */}
-            <div className="bg-white rounded-[24px] border border-[#e4eaf1] shadow-[0_15px_45px_rgba(25,55,90,0.08)] p-8 sm:p-10 lg:p-12">
-                        
-              {/* Heading */}
-              <h2 className="text-[34px] sm:text-[38px] font-semibold text-[#102f58] tracking-[-1px]">
-                Welcome 
-              </h2>
+            <div className="relative">
 
-              <p className="mt-2 text-[15px] text-[#71839a]">
-                Sign in to your account to continue
-              </p>
+              <input
+                type={
+                  showPassword
+                    ? "text"
+                    : "password"
+                }
+                name="Password"
+                value={formData.Password}
+                onChange={handleChange}
+                autoComplete="current-password"
+                className="
+                  w-full
+                  h-9
+                  bg-transparent
+                  border-0
+                  border-b
+                  border-[#aeb7c3]
+                  outline-none
+                  text-[13px]
+                  text-[#1f2937]
+                  px-1
+                  pr-8
+                  transition
+                  focus:border-[#3974df]
+                "
+              />
 
-              {/* Form */}
-              <form onSubmit={handleLogin} className="mt-9">
-
-                {/* Username */}
-                <div className="relative">
-
-                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-[#55708f]">
-                    <svg
-                      width="21"
-                      height="21"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                    >
-                      <circle cx="12" cy="8" r="4" />
-                      <path d="M4 21c0-4 3.5-7 8-7s8 3 8 7" />
-                    </svg>
-                  </div>
-
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Username"
-                    className="w-full h-[58px] rounded-xl border border-[#dce5ef] bg-white pl-14 pr-5 text-[#173b68] outline-none transition focus:border-[#2470c5] focus:ring-4 focus:ring-[#2470c5]/10 placeholder:text-[#9aabbd]"
-                  />
-
-                </div>
-
-                {/* Password */}
-                <div className="relative mt-4">
-
-                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-[#55708f]">
-                    <svg
-                      width="21"
-                      height="21"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                    >
-                      <rect
-                        x="5"
-                        y="10"
-                        width="14"
-                        height="10"
-                        rx="2"
-                      />
-                      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
-                    </svg>
-                  </div>
-
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Password"
-                    className="w-full h-[58px] rounded-xl border border-[#dce5ef] bg-white pl-14 pr-14 text-[#173b68] outline-none transition focus:border-[#2470c5] focus:ring-4 focus:ring-[#2470c5]/10 placeholder:text-[#9aabbd]"
-                  />
-
-                  {/* Show Password */}
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-5 top-1/2 -translate-y-1/2 text-[#55708f] hover:text-[#1765b0] transition"
-                  >
-                    {showPassword ? (
-                      <svg
-                        width="21"
-                        height="21"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                      >
-                        <path d="M3 3l18 18" />
-                        <path d="M10.5 10.5a2 2 0 0 0 3 3" />
-                        <path d="M9.8 5.2A10.5 10.5 0 0 1 12 5c5 0 9 4 10 7-0.4 1.2-1.4 2.8-2.8 4" />
-                        <path d="M6.2 6.2C4.5 7.2 3.2 8.7 2 12c1 3 5 7 10 7 1.3 0 2.5-.2 3.6-.7" />
-                      </svg>
-                    ) : (
-                      <svg
-                        width="21"
-                        height="21"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                      >
-                        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
-                    )}
-                  </button>
-
-                </div>
-
-                {/* Remember + Forgot */}
-                <div className="flex items-center justify-between mt-5">
-
-                  <label className="flex items-center gap-3 cursor-pointer">
-
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      className="w-[19px] h-[19px] accent-[#1765b0] cursor-pointer"
-                    />
-
-                    <span className="text-[14px] text-[#526a85]">
-                      Remember me
-                    </span>
-
-                  </label>
-
-                  <button
-                    type="button"
-                    className="text-[14px] font-medium text-[#145bb0] hover:text-[#0b4386]"
-                  >
-                    Forgot Password?
-                  </button>
-
-                </div>
-
-                {/* Message */}
-                {message && (
-                  <div
-                    className={`mt-5 rounded-lg px-4 py-3 text-sm ${
-                      message.includes("successful")
-                        ? "bg-green-50 text-green-700 border border-green-100"
-                        : "bg-red-50 text-red-700 border border-red-100"
-                    }`}
-                  >
-                    {message}
-                  </div>
+              <button
+                type="button"
+                onClick={() =>
+                  setShowPassword(
+                    (prev) => !prev
+                  )
+                }
+                className="
+                  absolute
+                  right-1
+                  bottom-2
+                  text-[#7b8796]
+                  hover:text-[#3974df]
+                "
+              >
+                {showPassword ? (
+                  <EyeOff size={16} />
+                ) : (
+                  <Eye size={16} />
                 )}
-
-                {/* Login Button */}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="mt-7 w-full h-[58px] rounded-xl bg-gradient-to-r from-[#1859a5] to-[#176fbe] text-white font-semibold text-[16px] shadow-[0_10px_24px_rgba(23,95,170,0.25)] transition hover:shadow-[0_13px_30px_rgba(23,95,170,0.32)] hover:translate-y-[-1px] disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {loading ? "Signing In..." : "Sign In  →"}
-                </button>
-
-              </form>
-
-              {/* Footer */}
-              <div className="flex items-center gap-4 mt-10">
-
-                <div className="flex-1 h-px bg-[#e5ebf2]" />
-
-                <span className="text-[12px] text-[#9aabbd] whitespace-nowrap">
-                  Built for Efficiency
-                </span>
-
-                
-
-              </div>
+              </button>
 
             </div>
 
           </div>
-        </div>
+
+          {/* Remember */}
+          <label
+            className="
+              flex
+              items-center
+              gap-2
+              cursor-pointer
+              mb-6
+            "
+          >
+
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) =>
+                setRememberMe(
+                  e.target.checked
+                )
+              }
+              className="
+                w-3.5
+                h-3.5
+                accent-[#3974df]
+              "
+            />
+
+            <span
+              className="
+                text-[11px]
+                text-[#697586]
+              "
+            >
+              Remember me
+            </span>
+
+          </label>
+
+          {/* Error */}
+          {message && (
+            <div
+              className="
+                mb-4
+                rounded-lg
+                bg-red-50
+                border
+                border-red-100
+                px-3
+                py-2
+                text-[10px]
+                text-red-600
+              "
+            >
+              {message}
+            </div>
+          )}
+
+          {/* Login */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="
+              w-full
+              h-11
+              rounded-full
+              bg-[#3974df]
+              text-white
+              text-[13px]
+              font-medium
+              shadow-[0_7px_18px_rgba(55,110,220,0.32)]
+              hover:bg-[#3068d2]
+              hover:-translate-y-[1px]
+              active:translate-y-0
+              transition-all
+              disabled:opacity-60
+              disabled:cursor-not-allowed
+            "
+          >
+            {loading
+              ? "Signing in..."
+              : "Login"}
+          </button>
+
+          {/* Forgot Password */}
+          <button
+            type="button"
+            className="
+              block
+              mx-auto
+              mt-5
+              text-[11px]
+              font-medium
+              text-[#111827]
+              hover:text-[#3974df]
+              transition
+            "
+          >
+            Forgot Password?
+          </button>
+
+        </form>
 
       </div>
-    </div>
-  );
-}
-
-
-/* =========================================================
-   FEATURE COMPONENT
-========================================================= */
-
-function Feature({ icon, text }) {
-  return (
-    <div className="flex items-center gap-4">
-
-      <div className="w-[38px] h-[38px] rounded-full bg-[#174d88] text-white flex items-center justify-center text-[17px] shadow-[0_5px_15px_rgba(23,77,136,0.18)]">
-        {icon}
-      </div>
-
-      <span className="text-[15px] font-medium text-[#173b68]">
-        {text}
-      </span>
 
     </div>
   );
