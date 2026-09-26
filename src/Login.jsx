@@ -668,7 +668,7 @@ function Login() {
                 mb-2
               "
             >
-              Email Address
+              UserName
             </label>
 
             <input

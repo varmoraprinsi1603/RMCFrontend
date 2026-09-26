@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   CalendarDays,
@@ -18,9 +18,16 @@ import {
   Building2,
   AlertCircle,
   RefreshCw,
+  Upload,
+  Download,
+  Eye,
+  Image as ImageIcon,
+  File,
+  Loader2,
 } from "lucide-react";
 
 const API_BASE_URL = "https://localhost:44319/api/Ticket";
+const ATTACHMENT_API_URL = "https://localhost:44319/api/TicketAttachment";
 
 /* =========================================================
    HELPERS
@@ -120,6 +127,14 @@ export default function TicketMaster() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
+
+  const [attachments, setAttachments] = useState([]);
+  const [attachmentLoading, setAttachmentLoading] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [attachmentError, setAttachmentError] = useState("");
+  const [previewImage, setPreviewImage] = useState(null);
+  const fileInputRef = useRef(null);
+  const previewUrlsRef = useRef([]);
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -295,12 +310,297 @@ export default function TicketMaster() {
       setPage("form");
 
       await loadTicketHistory(ticketID);
+      await loadAttachments(ticketID);
     } catch (err) {
       setError(err.message || "Unable to load ticket.");
     } finally {
       setLoading(false);
     }
   };
+
+  /* =======================================================
+     LOAD ATTACHMENTS
+  ======================================================= */
+
+  const clearAttachmentPreviewUrls = () => {
+    previewUrlsRef.current.forEach((url) => {
+      try {
+        URL.revokeObjectURL(url);
+      } catch {
+        // Ignore cleanup errors.
+      }
+    });
+    previewUrlsRef.current = [];
+  };
+
+  const loadAttachments = async (ticketID) => {
+    clearAttachmentPreviewUrls();
+    setAttachments([]);
+    setAttachmentError("");
+
+    if (!ticketID) return;
+
+    try {
+      setAttachmentLoading(true);
+
+      const response = await fetch(
+        `${ATTACHMENT_API_URL}/GetFiles?TicketID=${encodeURIComponent(ticketID)}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result?.Message ||
+            result?.message ||
+            "Unable to load attachments."
+        );
+      }
+
+      const files = Array.isArray(result?.Data ?? result?.data)
+        ? (result?.Data ?? result?.data)
+        : [];
+
+      const prepared = await Promise.all(
+        files.map(async (file) => {
+          if (!file.IsImage && !file.isImage) {
+            return file;
+          }
+
+          try {
+            const storedFileName =
+              file.StoredFileName ?? file.storedFileName;
+
+            const previewResponse = await fetch(
+              `${ATTACHMENT_API_URL}/Download?TicketID=${encodeURIComponent(ticketID)}&fileName=${encodeURIComponent(storedFileName)}`,
+              {
+                method: "GET",
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+
+            if (!previewResponse.ok) {
+              return file;
+            }
+
+            const blob = await previewResponse.blob();
+            const previewUrl = URL.createObjectURL(blob);
+            previewUrlsRef.current.push(previewUrl);
+
+            return {
+              ...file,
+              previewUrl,
+            };
+          } catch {
+            return file;
+          }
+        })
+      );
+
+      setAttachments(prepared);
+    } catch (err) {
+      setAttachmentError(
+        err.message || "Unable to load attachments."
+      );
+    } finally {
+      setAttachmentLoading(false);
+    }
+  };
+
+  const handleAttachmentUpload = async (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    if (formMode === "new" || !formData.TicketID) {
+      setAttachmentError("Please save the ticket first, then upload files.");
+      event.target.value = "";
+      return;
+    }
+
+    try {
+      setUploadingFile(true);
+      setAttachmentError("");
+      setMessage("");
+
+      const formDataUpload = new FormData();
+      formDataUpload.append("TicketID", String(formData.TicketID));
+      formDataUpload.append("file", file);
+
+      const response = await fetch(
+        `${ATTACHMENT_API_URL}/Upload`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formDataUpload,
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result?.Message ||
+            result?.message ||
+            "Unable to upload file."
+        );
+      }
+
+      setMessage("File uploaded successfully.");
+      await loadAttachments(formData.TicketID);
+    } catch (err) {
+      setAttachmentError(
+        err.message || "Unable to upload file."
+      );
+    } finally {
+      setUploadingFile(false);
+      event.target.value = "";
+    }
+  };
+
+  const handleAttachmentDownload = async (file) => {
+    try {
+      const storedFileName =
+        file.StoredFileName ?? file.storedFileName;
+      const displayName =
+        file.FileName ?? file.fileName ?? storedFileName;
+
+      const response = await fetch(
+        `${ATTACHMENT_API_URL}/Download?TicketID=${encodeURIComponent(formData.TicketID)}&fileName=${encodeURIComponent(storedFileName)}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Unable to download file.");
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = displayName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setAttachmentError(
+        err.message || "Unable to download file."
+      );
+    }
+  };
+
+  const handleAttachmentPreview = async (file) => {
+    try {
+      const existingPreview =
+        file.previewUrl ?? file.PreviewUrl;
+
+      if (existingPreview) {
+        setPreviewImage({
+          url: existingPreview,
+          name: file.FileName ?? file.fileName ?? "Attachment",
+        });
+        return;
+      }
+
+      const storedFileName =
+        file.StoredFileName ?? file.storedFileName;
+
+      const response = await fetch(
+        `${ATTACHMENT_API_URL}/Download?TicketID=${encodeURIComponent(formData.TicketID)}&fileName=${encodeURIComponent(storedFileName)}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Unable to preview file.");
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      previewUrlsRef.current.push(url);
+
+      setPreviewImage({
+        url,
+        name: file.FileName ?? file.fileName ?? "Attachment",
+      });
+    } catch (err) {
+      setAttachmentError(
+        err.message || "Unable to preview file."
+      );
+    }
+  };
+
+  const handleAttachmentDelete = async (file) => {
+    const displayName =
+      file.FileName ?? file.fileName ?? "this file";
+
+    if (!window.confirm(`Delete attachment "${displayName}"?`)) {
+      return;
+    }
+
+    try {
+      setAttachmentLoading(true);
+      setAttachmentError("");
+
+      const storedFileName =
+        file.StoredFileName ?? file.storedFileName;
+
+      const response = await fetch(
+        `${ATTACHMENT_API_URL}/Delete?TicketID=${encodeURIComponent(formData.TicketID)}&fileName=${encodeURIComponent(storedFileName)}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result?.Message ||
+            result?.message ||
+            "Unable to delete attachment."
+        );
+      }
+
+      setMessage("Attachment deleted successfully.");
+      await loadAttachments(formData.TicketID);
+    } catch (err) {
+      setAttachmentError(
+        err.message || "Unable to delete attachment."
+      );
+    } finally {
+      setAttachmentLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      clearAttachmentPreviewUrls();
+    };
+  }, []);
 
   /* =======================================================
      INITIAL LOAD
@@ -473,6 +773,9 @@ export default function TicketMaster() {
     setMessage("");
     setError("");
     setHistory([]);
+    clearAttachmentPreviewUrls();
+    setAttachments([]);
+    setAttachmentError("");
 
     setFormData({
       ...emptyForm,
@@ -555,14 +858,10 @@ export default function TicketMaster() {
       if (formMode === "new") {
         const payload = {
           TicketNo: formData.TicketNo || null,
+          Title: formData.Title,
+          Description:
+            formData.Description || null,
 
-      CreatedDate:
-          formData.CreatedDate || null,
-
-      Title: formData.Title,
-
-      Description:
-        formData.Description || null,
           CategoryID: Number(
             formData.CategoryID
           ),
@@ -983,6 +1282,9 @@ export default function TicketMaster() {
     setMessage("");
     setError("");
     setHistory([]);
+    clearAttachmentPreviewUrls();
+    setAttachments([]);
+    setAttachmentError("");
     setPage("list");
   };
 
@@ -1042,6 +1344,9 @@ export default function TicketMaster() {
 
     setFormData(emptyForm);
     setHistory([]);
+    clearAttachmentPreviewUrls();
+    setAttachments([]);
+    setAttachmentError("");
 
     setTimeout(() => {
       setPage("list");
@@ -1655,22 +1960,25 @@ export default function TicketMaster() {
                 </Field>
 
                 <Field
-  label="Ticket Date"
->
-  <input
-    type="date"
-    value={toInputDate(
-      formData.CreatedDate
-    )}
-    onChange={(e) =>
-      handleChange(
-        "CreatedDate",
-        e.target.value
-      )
-    }
-    className={inputClass}
-  />
-</Field>         
+                  label="Ticket Date"
+                >
+                  <div className="relative">
+                    <input
+                      type="date"
+                      
+                      value={toInputDate(
+                        formData.CreatedDate
+                      )}
+                      readOnly
+                      className={`${inputClass} pr-10 bg-[#f7f9fb]`}
+                    />
+
+                    <CalendarDays
+                      size={16}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#91a2b3]"
+                    />
+                  </div>
+                </Field>
 
               </div>
 
@@ -2032,19 +2340,192 @@ export default function TicketMaster() {
             </Section>
 
             {/* =================================================
+                06 ATTACHMENTS
+            ================================================== */}
+
+            <Section
+              number="06"
+              title="Attachments"
+              subtitle="Upload photos and supporting documents for this ticket"
+              icon={<FileText size={17} />}
+            >
+
+              <div className="space-y-4">
+
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-xl border border-dashed border-[#bfd2e2] bg-[#f8fbfe]">
+
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-[#eaf3fc] text-[#1768ad] flex items-center justify-center">
+                      <Upload size={18} />
+                    </div>
+
+                    <div>
+                      <div className="text-[13px] font-semibold text-[#294e70]">
+                        Upload Attachment
+                      </div>
+                      <div className="text-[11px] text-[#8a9bad] mt-0.5">
+                        Images, PDF, Word, Excel or text files · Maximum 10 MB
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                      onChange={handleAttachmentUpload}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (formMode === "new" || !formData.TicketID) {
+                          setAttachmentError("Please save the ticket first, then upload files.");
+                          return;
+                        }
+                        fileInputRef.current?.click();
+                      }}
+                      disabled={uploadingFile}
+                      className="h-10 px-4 rounded-lg bg-[#176bb3] text-white text-[12px] font-semibold hover:bg-[#125b98] disabled:opacity-60 flex items-center justify-center gap-2"
+                    >
+                      {uploadingFile ? (
+                        <Loader2 size={15} className="animate-spin" />
+                      ) : (
+                        <Upload size={15} />
+                      )}
+                      {uploadingFile ? "Uploading..." : "Choose File"}
+                    </button>
+                  </div>
+
+                </div>
+
+                {attachmentError && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-[12px] text-red-700">
+                    {attachmentError}
+                  </div>
+                )}
+
+                {formMode === "new" && (
+                  <div className="text-[11px] text-[#8a9bad]">
+                    Save the ticket first to enable attachments.
+                  </div>
+                )}
+
+                {attachmentLoading ? (
+                  <div className="py-7 text-center text-[12px] text-[#8a9bad]">
+                    Loading attachments...
+                  </div>
+                ) : attachments.length === 0 ? (
+                  <div className="py-7 text-center border border-[#edf1f5] rounded-xl bg-white text-[12px] text-[#8a9bad]">
+                    No attachments uploaded for this ticket.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {attachments.map((file, index) => {
+                      const fileName = file.FileName ?? file.fileName ?? "Attachment";
+                      const storedFileName = file.StoredFileName ?? file.storedFileName ?? "";
+                      const isImage = file.IsImage ?? file.isImage ?? false;
+                      const previewUrl = file.previewUrl ?? file.PreviewUrl;
+                      const size = Number(file.Size ?? file.size ?? 0);
+                      const sizeText = size > 1024 * 1024
+                        ? `${(size / (1024 * 1024)).toFixed(1)} MB`
+                        : `${Math.max(1, Math.round(size / 1024))} KB`;
+
+                      return (
+                        <div
+                          key={`${storedFileName}-${index}`}
+                          className="border border-[#dce6ef] rounded-xl overflow-hidden bg-white"
+                        >
+                          {isImage && previewUrl ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAttachmentPreview(file)}
+                              className="w-full h-36 bg-[#f6f9fc] flex items-center justify-center overflow-hidden"
+                            >
+                              <img
+                                src={previewUrl}
+                                alt={fileName}
+                                className="w-full h-full object-cover"
+                              />
+                            </button>
+                          ) : (
+                            <div className="h-36 bg-[#f6f9fc] flex items-center justify-center text-[#6d91b0]">
+                              {isImage ? (
+                                <ImageIcon size={34} />
+                              ) : (
+                                <FileText size={34} />
+                              )}
+                            </div>
+                          )}
+
+                          <div className="p-3">
+                            <div className="flex items-start gap-2">
+                              <div className="min-w-0 flex-1">
+                                <div className="text-[12px] font-semibold text-[#315574] truncate" title={fileName}>
+                                  {fileName}
+                                </div>
+                                <div className="text-[10px] text-[#93a2b0] mt-1">
+                                  {sizeText}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="mt-3 flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  isImage
+                                    ? handleAttachmentPreview(file)
+                                    : handleAttachmentDownload(file)
+                                }
+                                className="h-8 px-3 rounded-md border border-[#d7e2ec] bg-white text-[#4d6b86] text-[11px] font-semibold hover:bg-[#f6f9fc] flex items-center gap-1.5"
+                              >
+                                {isImage ? <Eye size={13} /> : <Download size={13} />}
+                                {isImage ? "Preview" : "Download"}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleAttachmentDownload(file)}
+                                className="h-8 px-3 rounded-md border border-[#d7e2ec] bg-white text-[#4d6b86] text-[11px] font-semibold hover:bg-[#f6f9fc] flex items-center gap-1.5"
+                              >
+                                <Download size={13} />
+                                Download
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleAttachmentDelete(file)}
+                                className="ml-auto h-8 w-8 rounded-md border border-red-200 bg-white text-red-600 hover:bg-red-50 flex items-center justify-center"
+                                title="Delete attachment"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+              </div>
+
+            </Section>
+
+            {/* =================================================
                 ACTIVITY / HISTORY
             ================================================== */}
 
-            {formMode ===
-              "edit" && (
-              <Section
-                number="06"
-                title="Activity"
-                subtitle="Ticket history"
-                icon={
-                  <History size={17} />
-                }
-              >
+            {formMode === "edit" && (
+  <Section
+    number="07"
+    title="Activity"
+    subtitle="Ticket history"
+    icon={<History size={17} />}
+  >
 
                 {historyLoading ? (
                   <div className="py-8 text-center text-[13px] text-[#8a9bad]">
@@ -2144,8 +2625,42 @@ export default function TicketMaster() {
             )}
 
             {/* =================================================
-                ACTION BAR
+                IMAGE PREVIEW
             ================================================== */}
+
+            {previewImage && (
+              <div
+                className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-5"
+                onClick={() => setPreviewImage(null)}
+              >
+                <div
+                  className="relative max-w-5xl max-h-[90vh] bg-white rounded-xl p-3 shadow-2xl"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setPreviewImage(null)}
+                    className="absolute -right-3 -top-3 w-8 h-8 rounded-full bg-white border border-[#dce6ef] text-[#526a85] flex items-center justify-center shadow"
+                  >
+                    <X size={15} />
+                  </button>
+
+                  <img
+                    src={previewImage.url}
+                    alt={previewImage.name}
+                    className="max-w-[85vw] max-h-[82vh] object-contain rounded-lg"
+                  />
+
+                  <div className="px-1 pt-2 text-[11px] text-[#647d95] truncate">
+                    {previewImage.name}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* =================================================
+                ACTION BAR
+            ================================================== */
 
             <div className="sticky bottom-3 z-20 bg-white/95 backdrop-blur border border-[#dce6ef] rounded-xl p-3 shadow-[0_8px_30px_rgba(20,55,90,0.10)]">
 
@@ -2202,7 +2717,8 @@ export default function TicketMaster() {
               </div>
             </div>
 
-          </div>
+           }
+                    </div>
         )}
 
       </div>

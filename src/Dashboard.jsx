@@ -469,7 +469,16 @@ function Dashboard() {
 
                   <div
                     key={card.title}
-                    className="bg-white rounded-2xl border border-[#e0e7ef] p-5 shadow-[0_8px_25px_rgba(30,65,100,0.05)] hover:shadow-[0_12px_30px_rgba(30,65,100,0.08)] transition"
+                    onClick={
+                      card.title === "Total Tickets"
+                        ? () => navigate("/Dashboard/tickets")
+                        : undefined
+                    }
+                    className={`bg-white rounded-2xl border border-[#e0e7ef] p-5 shadow-[0_8px_25px_rgba(30,65,100,0.05)] hover:shadow-[0_12px_30px_rgba(30,65,100,0.08)] transition ${
+                      card.title === "Total Tickets"
+                        ? "cursor-pointer"
+                        : ""
+                    }`}
                   >
 
                     <div className="flex items-center justify-between">
