@@ -555,10 +555,14 @@ export default function TicketMaster() {
       if (formMode === "new") {
         const payload = {
           TicketNo: formData.TicketNo || null,
-          Title: formData.Title,
-          Description:
-            formData.Description || null,
 
+      CreatedDate:
+          formData.CreatedDate || null,
+
+      Title: formData.Title,
+
+      Description:
+        formData.Description || null,
           CategoryID: Number(
             formData.CategoryID
           ),
@@ -1651,25 +1655,22 @@ export default function TicketMaster() {
                 </Field>
 
                 <Field
-                  label="Ticket Date"
-                >
-                  <div className="relative">
-                    <input
-                      type="date"
-                      
-                      value={toInputDate(
-                        formData.CreatedDate
-                      )}
-                      readOnly
-                      className={`${inputClass} pr-10 bg-[#f7f9fb]`}
-                    />
-
-                    <CalendarDays
-                      size={16}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#91a2b3]"
-                    />
-                  </div>
-                </Field>
+  label="Ticket Date"
+>
+  <input
+    type="date"
+    value={toInputDate(
+      formData.CreatedDate
+    )}
+    onChange={(e) =>
+      handleChange(
+        "CreatedDate",
+        e.target.value
+      )
+    }
+    className={inputClass}
+  />
+</Field>         
 
               </div>
 
