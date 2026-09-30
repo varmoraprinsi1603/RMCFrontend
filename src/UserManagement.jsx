@@ -782,7 +782,7 @@ function UserManagement() {
 
       <div className="mb-3 flex flex-col gap-2 rounded border border-[#dce1e6] bg-white p-2 md:flex-row">
 
-        <div className="flex h-9 flex-1 items-center rounded border border-[#d4d9de] px-2.5">
+        <div className="flex h-7 flex-1 items-center rounded border border-[#d4d9de] px-2.5">
 
           <span className="mr-2 text-[18px] text-[#8a949e]">
             ⌕
@@ -805,7 +805,7 @@ function UserManagement() {
           onChange={(e) =>
             setRoleFilter(e.target.value)
           }
-          className="h-9 min-w-[150px] rounded border border-[#d4d9de] bg-white px-2 text-[12px] text-[#394652] outline-none focus:border-[#52718f]"
+          className="h-7 min-w-[150px] rounded border border-[#d4d9de] bg-white px-2 text-[12px] text-[#394652] outline-none focus:border-[#52718f]"
         >
           <option value="">
             All Roles
@@ -833,7 +833,7 @@ function UserManagement() {
           onChange={(e) =>
             setStatusFilter(e.target.value)
           }
-          className="h-9 min-w-[145px] rounded border border-[#d4d9de] bg-white px-2 text-[12px] text-[#394652] outline-none focus:border-[#52718f]"
+          className="h-7 min-w-[145px] rounded border border-[#d4d9de] bg-white px-2 text-[12px] text-[#394652] outline-none focus:border-[#52718f]"
         >
           <option value="">
             All Status
@@ -854,7 +854,7 @@ function UserManagement() {
           <button
             type="button"
             onClick={clearFilters}
-            className="h-9 rounded border border-[#d4d9de] bg-white px-3 text-[11px] font-semibold text-[#66717b] hover:bg-[#f4f5f6]"
+            className="h-8 rounded border border-[#d4d9de] bg-white px-3 text-[11px] font-semibold text-[#66717b] hover:bg-[#f4f5f6]"
           >
             Clear
           </button>

@@ -139,6 +139,7 @@ export default function TicketMaster() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
+  const [supportExecutives, setSupportExecutives] = useState([]);
   /* =======================================================
      AUTH HEADER
   ======================================================= */
@@ -611,8 +612,47 @@ export default function TicketMaster() {
 
     loadTickets();
     loadCategories();
+    loadSupportExecutives();
   }, []);
 
+
+  const loadSupportExecutives = async () => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/GetSupportExecutives`,
+      {
+        method: "GET",
+        headers: authHeaders,
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result?.Message ||
+        result?.message ||
+        "Unable to load support executives."
+      );
+    }
+
+    const data =
+      result?.Data ??
+      result?.data ??
+      [];
+
+    setSupportExecutives(
+      Array.isArray(data) ? data : []
+    );
+  } catch (err) {
+    console.error(
+      "Support Executive API:",
+      err
+    );
+
+    setSupportExecutives([]);
+  }
+};
   /* =======================================================
      MAP API TICKET TO FORM
   ======================================================= */
@@ -784,7 +824,7 @@ export default function TicketMaster() {
 
       TicketNo: "",
 
-      CreatedDate: new Date().toISOString(),
+      CreatedDate: "",
 
       Status: "Open",
 
@@ -1392,7 +1432,7 @@ export default function TicketMaster() {
         ================================================== */}
 
         {page === "list" && (
-          <div className="space-y-5">
+          <div className="space-y-3">
 
             {/* HEADER */}
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -1416,23 +1456,7 @@ export default function TicketMaster() {
               </div>
 
               <div className="flex items-center gap-2">
-
-                <button
-                  type="button"
-                  onClick={loadTickets}
-                  className="h-10 px-4 rounded-lg border border-[#d8e3ee] bg-white text-[#42627f] text-[13px] font-medium hover:bg-[#f6f9fc] flex items-center gap-2"
-                >
-                  <RefreshCw
-                    size={15}
-                    className={
-                      loading
-                        ? "animate-spin"
-                        : ""
-                    }
-                  />
-                  Refresh
-                </button>
-
+                
                 <button
                   type="button"
                   onClick={openNewTicket}
@@ -1463,9 +1487,9 @@ export default function TicketMaster() {
             )}
 
             {/* FILTER BAR */}
-            <div className="bg-white border border-[#dce6ef] rounded-xl p-4 shadow-[0_5px_20px_rgba(26,65,100,0.04)]">
+            <div className="bg-white border border-[#dce6ef] rounded-xl p-3 shadow-[0_5px_20px_rgba(26,65,100,0.04)]">
 
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
 
                 <div className="relative xl:col-span-2">
                   <Search
@@ -1481,7 +1505,7 @@ export default function TicketMaster() {
                       )
                     }
                     placeholder="Search ticket, company, contact or title..."
-                    className="w-full h-10 rounded-lg border border-[#d9e4ee] bg-[#fbfdff] pl-9 pr-3 text-[13px] outline-none focus:border-[#5c91bf]"
+                    className="w-full h-9 rounded-lg border border-[#d9e4ee] bg-[#fbfdff] pl-9 pr-3 text-[13px] outline-none focus:border-[#5c91bf]"
                   />
                 </div>
 
@@ -1492,7 +1516,7 @@ export default function TicketMaster() {
                       e.target.value
                     )
                   }
-                  className="h-10 rounded-lg border border-[#d9e4ee] bg-[#fbfdff] px-3 text-[13px] outline-none focus:border-[#5c91bf]"
+                  className="h-9 rounded-lg border border-[#d9e4ee] bg-[#fbfdff] px-3 text-[13px] outline-none focus:border-[#5c91bf]"
                 >
                   <option value="">
                     All Status
@@ -1517,7 +1541,7 @@ export default function TicketMaster() {
                       e.target.value
                     )
                   }
-                  className="h-10 rounded-lg border border-[#d9e4ee] bg-[#fbfdff] px-3 text-[13px] outline-none focus:border-[#5c91bf]"
+                  className="h-9 rounded-lg border border-[#d9e4ee] bg-[#fbfdff] px-3 text-[13px] outline-none focus:border-[#5c91bf]"
                 >
                   <option value="">
                     All Priority
@@ -1558,7 +1582,7 @@ export default function TicketMaster() {
                 </p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-5xl mx-auto">
 
                 {filteredTickets.map(
                   (ticket, index) => {
@@ -1652,14 +1676,14 @@ export default function TicketMaster() {
                             ticketID
                           )
                         }
-                        className="w-full text-left bg-white border border-[#dce6ef] rounded-xl p-4 hover:border-[#8bb5d6] hover:shadow-[0_8px_25px_rgba(25,75,115,0.07)] transition"
+                        className="w-full text-left bg-white border border-[#dce6ef] rounded-xl p-3 hover:border-[#8bb5d6] hover:shadow-[0_8px_25px_rgba(25,75,115,0.07)] transition"
                       >
 
-                        <div className="flex flex-col xl:flex-row xl:items-center gap-4">
+                        <div className="flex flex-col xl:flex-row xl:items-center gap-3">
 
                           <div className="min-w-0 flex-1">
 
-                            <div className="flex flex-wrap items-center gap-2">
+                            <div className="flex items-center gap-2 whitespace-nowrap">
 
                               <span className="text-[14px] font-semibold text-[#155a92]">
                                 {ticketNo ||
@@ -1693,7 +1717,7 @@ export default function TicketMaster() {
 
                           </div>
 
-                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-2 xl:w-[610px]">
+                          <div className="grid grid-cols-3 gap-x-8 gap-y-2 xl:flex-1 xl:min-w-0">
 
                             <InfoSmall
                               icon={
@@ -1720,20 +1744,7 @@ export default function TicketMaster() {
                                 "-"
                               }
                             />
-
-                            <InfoSmall
-                              icon={
-                                <Users
-                                  size={14}
-                                />
-                              }
-                              label="Assigned To"
-                              value={
-                                assignedTo ||
-                                "-"
-                              }
-                            />
-
+                            
                             <InfoSmall
                               icon={
                                 <Clock3
@@ -1749,22 +1760,28 @@ export default function TicketMaster() {
                           </div>
 
                         </div>
+                           <div className="mt-2 pt-2 border-t border-[#edf1f5] flex items-center justify-between text-[11px] text-[#92a1b0]">
 
-                        <div className="mt-3 pt-3 border-t border-[#edf1f5] flex items-center justify-between text-[11px] text-[#92a1b0]">
+                        <span>
+    Entry By:{" "}
+    <span className="text-[#627b92]">
+      {createdBy || "-"}
+    </span>
+  </span>
 
-                          <span>
-                            Entry By:{" "}
-                            <span className="text-[#627b92]">
-                              {createdBy ||
-                                "-"}
-                            </span>
-                          </span>
+  <span className="text-[#627b92]">
+    Assigned To:{" "}
+    <span className="text-[#627b92]">
+      {assignedTo || "-"}
+    </span>
+  </span>
 
-                          <span className="text-[#176bb3] font-medium">
-                            Open Ticket →
-                          </span>
+  <span className="text-[#176bb3] font-medium">
+    Open Ticket →
+  </span>
 
-                        </div>
+</div>
+                        
 
                       </button>
                     );
@@ -1782,7 +1799,7 @@ export default function TicketMaster() {
         ================================================== */}
 
         {page === "form" && (
-          <div className="space-y-5">
+          <div className="space-y-3">
 
             {/* FORM HEADER */}
             <div className="flex items-center justify-between gap-4">
@@ -1876,7 +1893,7 @@ export default function TicketMaster() {
               icon={<FileText size={17} />}
             >
 
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2">
 
                 <Field
                   label="Ticket No"
@@ -1969,20 +1986,22 @@ export default function TicketMaster() {
                       value={toInputDate(
                         formData.CreatedDate
                       )}
-                      readOnly
-                      className={`${inputClass} pr-10 bg-[#f7f9fb]`}
+                      onChange={(e) =>
+                        handleChange(
+                          "CreatedDate",
+                          e.target.value
+                        )
+                      }
+                      className={`${inputClass} pr-3 bg-[#f7f9fb] cursor-pointer`}
                     />
 
-                    <CalendarDays
-                      size={16}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#91a2b3]"
-                    />
+                    
                   </div>
                 </Field>
 
               </div>
 
-              <div className="mt-5">
+              <div className="mt-2">
                 <Field
                   label="Description"
                 >
@@ -2016,7 +2035,7 @@ export default function TicketMaster() {
               icon={<Building2 size={17} />}
             >
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
 
                 <Field label="Company Name">
                   <input
@@ -2116,7 +2135,7 @@ export default function TicketMaster() {
               }
             >
 
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2">
 
                   
                 <Field label="Start Date">
@@ -2198,7 +2217,7 @@ export default function TicketMaster() {
               icon={<Users size={17} />}
             >
 
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2">
 
                 <Field label="Assign By">
                   <input
@@ -2281,7 +2300,7 @@ export default function TicketMaster() {
               icon={<FileText size={17} />}
             >
 
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
 
                 <Field label="Problem">
                   <textarea
@@ -2447,7 +2466,7 @@ export default function TicketMaster() {
                               <img
                                 src={previewUrl}
                                 alt={fileName}
-                                className="w-full h-full object-cover"
+                                className="max-w-full max-h-full w-auto h-auto object-contain"
                               />
                             </button>
                           ) : (
@@ -2473,28 +2492,25 @@ export default function TicketMaster() {
                             </div>
 
                             <div className="mt-3 flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  isImage
-                                    ? handleAttachmentPreview(file)
-                                    : handleAttachmentDownload(file)
-                                }
-                                className="h-8 px-3 rounded-md border border-[#d7e2ec] bg-white text-[#4d6b86] text-[11px] font-semibold hover:bg-[#f6f9fc] flex items-center gap-1.5"
-                              >
-                                {isImage ? <Eye size={13} /> : <Download size={13} />}
-                                {isImage ? "Preview" : "Download"}
-                              </button>
+                             {isImage && (
+                            <button
+                               type="button"
+                               onClick={() => handleAttachmentPreview(file)}
+                               className="h-8 px-3 rounded-md border border-[#d7e2ec] bg-white text-[#4d6b86] text-[11px] font-semibold hover:bg-[#f6f9fc] flex items-center gap-1.5"
+                            >
+                           <Eye size={13} />
+                               Preview
+                           </button>
+                           )}
 
-                              <button
-                                type="button"
-                                onClick={() => handleAttachmentDownload(file)}
-                                className="h-8 px-3 rounded-md border border-[#d7e2ec] bg-white text-[#4d6b86] text-[11px] font-semibold hover:bg-[#f6f9fc] flex items-center gap-1.5"
-                              >
-                                <Download size={13} />
-                                Download
-                              </button>
-
+                          <button
+                            type="button"
+                            onClick={() => handleAttachmentDownload(file)}
+                            className="h-8 px-3 rounded-md border border-[#d7e2ec] bg-white text-[#4d6b86] text-[11px] font-semibold hover:bg-[#f6f9fc] flex items-center gap-1.5"
+                          >
+                           <Download size={13} />
+                              Download
+                          </button>
                               <button
                                 type="button"
                                 onClick={() => handleAttachmentDelete(file)}
@@ -2540,7 +2556,7 @@ export default function TicketMaster() {
 
                     <div className="absolute left-[7px] top-2 bottom-2 w-px bg-[#dce7f0]" />
 
-                    <div className="space-y-5">
+                    <div className="space-y-3">
 
                       {history.map(
                         (item, index) => {
@@ -2645,11 +2661,13 @@ export default function TicketMaster() {
                     <X size={15} />
                   </button>
 
-                  <img
-                    src={previewImage.url}
-                    alt={previewImage.name}
-                    className="max-w-[85vw] max-h-[82vh] object-contain rounded-lg"
-                  />
+                  <div className="w-[75vw] max-w-5xl h-[70vh] flex items-center justify-center overflow-hidden">
+  <img
+    src={previewImage.url}
+    alt={previewImage.name}
+    className="max-w-full max-h-full w-auto h-auto object-contain rounded-lg"
+  />
+</div>
 
                   <div className="px-1 pt-2 text-[11px] text-[#647d95] truncate">
                     {previewImage.name}
@@ -2662,7 +2680,7 @@ export default function TicketMaster() {
                 ACTION BAR
             ================================================== */
 
-            <div className="sticky bottom-3 z-20 bg-white/95 backdrop-blur border border-[#dce6ef] rounded-xl p-3 shadow-[0_8px_30px_rgba(20,55,90,0.10)]">
+            <div className="sticky bottom-2 z-20 bg-white/95 backdrop-blur border border-[#dce6ef] rounded-lg p-2 shadow-[0_5px_20px_rgba(20,55,90,0.08)]">
 
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
 
@@ -2680,7 +2698,7 @@ export default function TicketMaster() {
                   <button
                     type="button"
                     onClick={handleDelete}
-                    className="h-10 px-4 rounded-lg border border-red-200 bg-white text-red-600 text-[13px] font-semibold hover:bg-red-50 flex items-center justify-center gap-2"
+                    className="h-8 px-3 rounded-lg border border-red-200 bg-white text-red-600 text-[12px] font-semibold hover:bg-red-50 flex items-center justify-center gap-1.5"
                   >
                     <Trash2
                       size={15}
@@ -2691,7 +2709,7 @@ export default function TicketMaster() {
                   <button
                     type="button"
                     onClick={handleCancel}
-                    className="h-10 px-5 rounded-lg border border-[#d7e2ec] bg-white text-[#536e88] text-[13px] font-semibold hover:bg-[#f6f9fc] flex items-center justify-center gap-2"
+                    className="h-8 px-3 rounded-lg border border-[#d7e2ec] bg-white text-[#536e88] text-[12px] font-semibold hover:bg-[#f6f9fc] flex items-center justify-center gap-1.5"
                   >
                     <X size={15} />
                     Cancel
@@ -2701,7 +2719,7 @@ export default function TicketMaster() {
                     type="button"
                     onClick={handleSave}
                     disabled={saving}
-                    className="h-10 px-6 rounded-lg bg-[#176bb3] text-white text-[13px] font-semibold hover:bg-[#125b98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[0_7px_18px_rgba(23,107,179,0.18)]"
+                    className="h-8 px-4 rounded-lg bg-[#176bb3] text-white text-[12px] font-semibold hover:bg-[#125b98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 shadow-[0_5px_12px_rgba(23,107,179,0.15)]"
                   >
                     <Save
                       size={15}
@@ -2768,7 +2786,7 @@ function Section({
 
       </div>
 
-      <div className="p-5">
+      <div className="p-4">
         {children}
       </div>
 
@@ -2788,7 +2806,7 @@ function Field({
   return (
     <div>
 
-      <label className="block mb-2 text-[12px] font-semibold text-[#526d86]">
+      <label className="block mb-1 text-[12px] font-semibold text-[#526d86]">
         {label}
 
         {required && (
@@ -2917,7 +2935,7 @@ function PriorityBadge({ priority }) {
 ========================================================= */
 
 const inputClass =
-  "w-full h-11 rounded-lg border border-[#d9e4ee] bg-white px-3 text-[13px] text-[#294e70] outline-none transition focus:border-[#5b91bd] focus:ring-2 focus:ring-[#eaf3fa] placeholder:text-[#a4b1be]";
+  "w-full h-9 rounded-lg border border-[#d9e4ee] bg-white px-3 text-[13px] text-[#294e70] outline-none transition focus:border-[#5b91bd] focus:ring-2 focus:ring-[#eaf3fa] placeholder:text-[#a4b1be]";
 
 const textareaClass =
   "w-full rounded-lg border border-[#d9e4ee] bg-white px-3 py-3 text-[13px] text-[#294e70] outline-none transition focus:border-[#5b91bd] focus:ring-2 focus:ring-[#eaf3fa] placeholder:text-[#a4b1be] resize-y";

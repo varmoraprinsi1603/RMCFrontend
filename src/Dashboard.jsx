@@ -163,14 +163,26 @@ function Dashboard() {
   // =====================================================
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("RoleID");
-    localStorage.removeItem("RoleName");
-    localStorage.removeItem("username");
-    localStorage.removeItem("rememberMe");
 
-    navigate("/login");
-  };
+  const confirmLogout = window.confirm(
+    "Are you sure you want to logout?"
+  );
+
+  if (!confirmLogout) {
+    return;
+  }
+
+  localStorage.removeItem("token");
+  localStorage.removeItem("RoleID");
+  localStorage.removeItem("RoleName");
+  localStorage.removeItem("username");
+  localStorage.removeItem("UserName");
+  localStorage.removeItem("UserID");
+
+  navigate("/login", {
+    replace: true,
+  });
+};
 
   return (
     <div className="min-h-screen bg-[#eef3f9] text-[#173b68]">
@@ -429,30 +441,7 @@ function Dashboard() {
             {/* Welcome Section */}
 
             <div className="flex items-center justify-between mb-7">
-
-              <div>
-
-                <h2 className="text-[27px] font-semibold text-[#102f58]">
-                  Welcome back, {localStorage.getItem("username") || "User"} 👋
-                </h2>
-
-                <p className="text-[14px] text-[#7c8da2] mt-1">
-                  Here's what's happening with your service tickets today.
-                </p>
-
-              </div>
-
-              <button
-                onClick={loadDashboard}
-                className="flex items-center gap-2 px-4 py-2.5 bg-white border border-[#dce5ef] rounded-lg text-[13px] font-medium text-[#526a85] hover:border-[#b8c9dc] transition"
-              >
-
-                Refresh
-
-                <ArrowUpRight size={15} />
-
-              </button>
-
+                           
             </div>
 
             {/* =====================================================
