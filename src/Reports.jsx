@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   FileBarChart2,
@@ -67,6 +67,54 @@ function Reports() {
     localStorage.getItem("accessToken") ||
     localStorage.getItem("AccessToken");
 
+  const [supportExecutives, setSupportExecutives] =
+  useState([]);
+
+  // =====================================================
+// LOAD SUPPORT EXECUTIVES
+// =====================================================
+
+const loadSupportExecutives = async () => {
+  try {
+    const response = await fetch(
+      `${API_BASE}/GetSupportExecutives`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result?.Message ||
+          result?.message ||
+          "Unable to load support executives."
+      );
+    }
+
+    const data =
+      result?.Data ??
+      result?.data ??
+      [];
+
+    setSupportExecutives(
+      Array.isArray(data) ? data : []
+    );
+  } catch (error) {
+    console.error("Support Executive API:", error);
+    setSupportExecutives([]);
+  }
+};
+
+useEffect(() => {
+  if (!token) return;
+
+  loadSupportExecutives();
+}, []);
   // =====================================================
   // SUMMARY FILTER CHANGE
   // =====================================================
@@ -810,26 +858,43 @@ function Reports() {
             </div>
 
             {/* Assigned Employee */}
-            <div>
+            {/* Assigned Employee */}
+<div>
 
-              <label className="block text-[11px] font-semibold text-[#526b83] mb-1">
-                Assigned Employee
-              </label>
+  <label className="block text-[11px] font-semibold text-[#526b83] mb-1">
+    Assigned Employee
+  </label>
 
-              <input
-                type="text"
-                value={filters.AssignedToName}
-                onChange={(e) =>
-                  handleFilterChange(
-                    "AssignedToName",
-                    e.target.value
-                  )
-                }
-                placeholder="Enter employee name"
-                className="w-full h-9 px-3 border border-[#d6e0e9] rounded-lg text-[12px] text-[#173b68] outline-none focus:border-[#52718f]"
-              />
+  <select
+    value={filters.AssignedToName}
+    onChange={(e) =>
+      handleFilterChange(
+        "AssignedToName",
+        e.target.value
+      )
+    }
+    className="w-full h-9 px-3 border border-[#d6e0e9] rounded-lg text-[12px] text-[#173b68] outline-none focus:border-[#52718f]"
+  >
 
-            </div>
+    <option value="">
+      All Support Executives
+    </option>
+
+    {supportExecutives.map((user) => (
+      <option
+        key={user.UserID ?? user.userID}
+        value={user.Name ?? user.name}
+      >
+        {user.Name ??
+          user.name ??
+          user.UserName ??
+          user.userName}
+      </option>
+    ))}
+
+  </select>
+
+</div>
 
           </div>
 
@@ -1231,28 +1296,42 @@ function Reports() {
           </div>
 
           {/* Assigned Employee */}
-          <div>
+<div>
 
-            <label className="block text-[11px] font-semibold text-[#526b83] mb-1">
-              Assigned Employee
-            </label>
+  <label className="block text-[11px] font-semibold text-[#526b83] mb-1">
+    Assigned Employee
+  </label>
 
-            <input
-              type="text"
-              value={
-                performanceFilters.AssignedToName
-              }
-              onChange={(e) =>
-                handlePerformanceFilterChange(
-                  "AssignedToName",
-                  e.target.value
-                )
-              }
-              placeholder="Enter employee name"
-              className="w-full h-9 px-3 border border-[#d6e0e9] rounded-lg text-[12px] text-[#173b68] outline-none focus:border-[#52718f]"
-            />
+  <select
+    value={performanceFilters.AssignedToName}
+    onChange={(e) =>
+      handlePerformanceFilterChange(
+        "AssignedToName",
+        e.target.value
+      )
+    }
+    className="w-full h-9 px-3 border border-[#d6e0e9] rounded-lg text-[12px] text-[#173b68] outline-none focus:border-[#52718f]"
+  >
 
-          </div>
+    <option value="">
+      All Support Executives
+    </option>
+
+    {supportExecutives.map((user) => (
+      <option
+        key={user.UserID ?? user.userID}
+        value={user.Name ?? user.name}
+      >
+        {user.Name ??
+          user.name ??
+          user.UserName ??
+          user.userName}
+      </option>
+    ))}
+
+  </select>
+
+</div>
 
         </div>
 

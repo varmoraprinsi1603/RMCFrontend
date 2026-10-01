@@ -610,7 +610,7 @@ function Login() {
         className="
           absolute
           top-1/2
-          left-[40%]
+          left-[25%]
           -translate-y-1/2
           w-[360px]
           sm:w-[390px]

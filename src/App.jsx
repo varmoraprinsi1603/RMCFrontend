@@ -23,37 +23,37 @@ function clearSession() {
   localStorage.removeItem("UserID");
 }
 
-function ProtectedRoute({ children }) {
-  const token = localStorage.getItem("token");
-
+function SessionHandler() {
   useEffect(() => {
-    if (!token) {
-      return;
-    }
-
     const originalFetch = window.fetch;
 
-    window.fetch = async (...args) => {
+    const wrappedFetch = async (...args) => {
+      const requestUrl =
+        typeof args[0] === "string"
+          ? args[0]
+          : args[0]?.url || "";
+
       try {
-        const request = args[1] || {};
-
-        const headers = request.headers || {};
-
-        const authorization =
-          headers instanceof Headers
-            ? headers.get("Authorization")
-            : headers.Authorization ||
-              headers.authorization;
-
         const response = await originalFetch(...args);
 
-        // Only handle 401 for authenticated API requests
-        if (response.status === 401 && authorization) {
+        const isApiRequest =
+          requestUrl.startsWith(
+            "https://localhost:44319/api/"
+          );
+
+        const isLoginRequest =
+          requestUrl.includes("/UserMaster/Login");
+
+        if (
+          response.status === 401 &&
+          isApiRequest &&
+          !isLoginRequest
+        ) {
           clearSession();
 
           window.location.replace("/login");
 
-           throw new Error("SESSION_EXPIRED");
+          throw new Error("SESSION_EXPIRED");
         }
 
         return response;
@@ -62,10 +62,20 @@ function ProtectedRoute({ children }) {
       }
     };
 
+    window.fetch = wrappedFetch;
+
     return () => {
-      window.fetch = originalFetch;
+      if (window.fetch === wrappedFetch) {
+        window.fetch = originalFetch;
+      }
     };
-  }, [token]);
+  }, []);
+
+  return null;
+}
+
+function ProtectedRoute({ children }) {
+  const token = localStorage.getItem("token");
 
   if (!token) {
     return (
@@ -86,7 +96,7 @@ function App() {
   return (
 
     <BrowserRouter>
-
+            <SessionHandler />
       <Routes>
 
         {/* ================= LOGIN ================= */}

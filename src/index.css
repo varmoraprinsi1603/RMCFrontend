@@ -29,3 +29,11 @@ button,
 input {
   font: inherit;
 }
+
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}

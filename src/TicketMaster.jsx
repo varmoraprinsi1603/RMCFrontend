@@ -44,7 +44,7 @@ const emptyForm = {
   CategoryID: "",
   CategoryName: "",
   Priority: "",
-  CreatedDate: "",
+  CreatedDate:"",
   Status: "Open",
   AssignedTo: "",
   AssignedToName: "",
@@ -809,6 +809,31 @@ export default function TicketMaster() {
      NEW TICKET
   ======================================================= */
 
+  const getNextTicketNo = () => {
+  const numbers = tickets
+    .map((ticket) => {
+      const ticketNo = getValue(
+        ticket,
+        "TicketNo",
+        "ticketNo"
+      );
+
+      const match = String(ticketNo).match(
+        /^TKT-(\d+)$/i
+      );
+
+      return match ? Number(match[1]) : 0;
+    })
+    .filter((number) => number > 0);
+
+  const nextNumber =
+    numbers.length > 0
+      ? Math.max(...numbers) + 1
+      : 1;
+
+  return `TKT-${String(nextNumber).padStart(3, "0")}`;
+};
+
   const openNewTicket = () => {
     setMessage("");
     setError("");
@@ -822,9 +847,9 @@ export default function TicketMaster() {
 
       TicketID: 0,
 
-      TicketNo: "",
+      TicketNo:getNextTicketNo(),
 
-      CreatedDate: "",
+      CreatedDate:  getTodayInputDate(),
 
       Status: "Open",
 
@@ -909,7 +934,7 @@ export default function TicketMaster() {
           Priority: formData.Priority,
 
           CreatedBy: createdBy,
-
+          CreatedDate: formData.CreatedDate || null,
           CompanyName:
             formData.CompanyName || null,
 
@@ -939,15 +964,20 @@ export default function TicketMaster() {
 
           AssignBy:
             formData.AssignBy
-              ? Number(formData.AssignBy)
-              : null,
+           ? Number(formData.AssignBy)
+           : null,
+
+          AssignedTo:
+            formData.AssignedTo
+            ? Number(formData.AssignedTo)
+            : null,
 
           AssignByName:
-            formData.AssignByName || null,
+           formData.AssignByName || null,
 
           AssignedToName:
-            formData.AssignedToName || null,
-        };
+           formData.AssignedToName || null,
+          };
 
         response = await fetch(
           `${API_BASE_URL}/AddTicket`,
@@ -1204,7 +1234,7 @@ export default function TicketMaster() {
         )
       ).toLowerCase();
 
-      const contact = String(
+      const contact = String( 
         getValue(
           ticket,
           "ContactPerson",
@@ -1300,19 +1330,38 @@ export default function TicketMaster() {
     );
   };
 
-  const toInputDate = (value) => {
-    if (!value) return "";
+      const toInputDate = (value) => {
+  if (!value) return "";
 
-    const date = new Date(value);
+  const text = String(value);
 
-    if (Number.isNaN(date.getTime())) {
-      return "";
-    }
+  // API se YYYY-MM-DD ya YYYY-MM-DDTHH:mm:ss aaye
+  if (/^\d{4}-\d{2}-\d{2}/.test(text)) {
+    return text.substring(0, 10);
+  }
 
-    return date
-      .toISOString()
-      .split("T")[0];
-  };
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+const getTodayInputDate = () => {
+  const date = new Date();
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
 
   /* =======================================================
      BACK
@@ -1899,17 +1948,10 @@ export default function TicketMaster() {
                   label="Ticket No"
                 >
                   <input
-                    value={
-                      formData.TicketNo
-                    }
-                    onChange={(e) =>
-                      handleChange(
-                        "TicketNo",
-                        e.target.value
-                      )
-                    }
-                    placeholder="Enter Ticket No"
-                    className={inputClass}
+                   value={formData.TicketNo}
+                   readOnly
+                   placeholder="Auto generated"
+                   className={`${inputClass} bg-gray-100 cursor-not-allowed`}
                   />
                 </Field>
 
@@ -2235,19 +2277,46 @@ export default function TicketMaster() {
                 </Field>
 
                 <Field label="Assign To">
-                  <input
-                    type="text"
-                    value={formData.AssignedToName || ""}
-                    onChange={(e) =>
-                      handleChange(
-                        "AssignedToName",
-                        e.target.value
-                      )
-                    }
-                    placeholder="Assign To"
-                    className={inputClass}
-                  />
-                </Field>
+  <select
+    value={formData.AssignedTo || ""}
+    onChange={(e) => {
+      const selectedID = e.target.value;
+
+      const selectedUser =
+        supportExecutives.find(
+          (user) =>
+            String(user.UserID ?? user.userID) ===
+            String(selectedID)
+        );
+
+      handleChange(
+        "AssignedTo",
+        selectedID
+      );
+
+      handleChange(
+        "AssignedToName",
+        selectedUser?.Name ??
+          selectedUser?.name ??
+          ""
+      );
+    }}
+    className={inputClass}
+  >
+    <option value="">
+      Select Support Executive
+    </option>
+
+    {supportExecutives.map((user) => (
+      <option
+        key={user.UserID ?? user.userID}
+        value={user.UserID ?? user.userID}
+      >
+        {user.Name ?? user.name ?? user.UserName ?? user.userName}
+      </option>
+    ))}
+  </select>
+</Field>
 
                 <Field label="Status">
                   <SelectBox

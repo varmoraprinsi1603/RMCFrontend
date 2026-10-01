@@ -480,6 +480,7 @@ function UserManagement() {
     const payload = {
       UserID: Number(formData.UserID),
       UserName: formData.UserName,
+      Password: formData.Password,
       Name: formData.Name,
       EmailID: formData.EmailID,
       Mobile: formData.Mobile,
@@ -1341,30 +1342,40 @@ function UserManagement() {
                   />
 
                 </div>
+                
+                {/* PASSWORD */}
 
-                {/* PASSWORD - ADD ONLY */}
+               <div className="mb-3">
 
-                {!editingUser && (
-                  <div className="mb-3">
+  <label className="mb-1 block text-[10px] font-bold text-[#68737d]">
+    PASSWORD
+    {!editingUser && (
+      <span className="text-[#a15b5b]">
+        {" "}*
+      </span>
+    )}
+  </label>
 
-                    <label className="mb-1 block text-[10px] font-bold text-[#68737d]">
-                      PASSWORD{" "}
-                      <span className="text-[#a15b5b]">
-                        *
-                      </span>
-                    </label>
+  <input
+    type="password"
+    name="Password"
+    value={formData.Password}
+    onChange={handleChange}
+    placeholder={
+      editingUser
+        ? "Enter new password (optional)"
+        : "Enter password"
+    }
+    className="h-9 w-full rounded border border-[#d5dbe0] px-2.5 text-[12px] text-[#34424e] outline-none focus:border-[#52718f] focus:ring-2 focus:ring-[#52718f]/10"
+  />
 
-                    <input
-                      type="password"
-                      name="Password"
-                      value={formData.Password}
-                      onChange={handleChange}
-                      placeholder="Enter password"
-                      className="h-9 w-full rounded border border-[#d5dbe0] px-2.5 text-[12px] text-[#34424e] outline-none focus:border-[#52718f] focus:ring-2 focus:ring-[#52718f]/10"
-                    />
+  {editingUser && (
+    <div className="mt-1 text-[9px] text-[#8a949d]">
+      Leave blank to keep the current password.
+    </div>
+  )}
 
-                  </div>
-                )}
+</div>
 
                 {/* EMAIL */}
 
