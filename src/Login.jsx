@@ -145,462 +145,236 @@ function Login() {
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-[#dce3ec]">
 
-      {/* =====================================================
-          FULL SCREEN BACKGROUND
-      ====================================================== */}
+{/* =====================================================
+    FULL SCREEN BACKGROUND
+====================================================== */}
 
-      <div className="absolute inset-0 bg-gradient-to-br from-[#c7d0dd] via-[#e1e6ed] to-[#f4f6f8]" />
+<div className="absolute inset-0 bg-[#f4f1ed] overflow-hidden">
 
-      {/* Soft ambient lights */}
-      <div
-        className="
-          absolute
-          -top-[20%]
-          -left-[10%]
-          w-[55vw]
-          h-[55vw]
-          rounded-full
-          bg-[#edf3f9]/70
-          blur-[100px]
-        "
-      />
+  {/* Soft background shapes */}
+  <div className="absolute -top-32 -left-32 w-[420px] h-[420px] rounded-full bg-[#dbe7f3] opacity-70 blur-[2px]" />
 
-      <div
-        className="
-          absolute
-          -bottom-[25%]
-          right-[-10%]
-          w-[60vw]
-          h-[50vw]
-          rounded-full
-          bg-[#cbd9e8]/60
-          blur-[110px]
-        "
-      />
+  <div className="absolute -bottom-40 -right-32 w-[500px] h-[500px] rounded-full bg-[#e7dff0] opacity-60" />
 
-      {/* =====================================================
-          FULL SCREEN SVG SCENE
-      ====================================================== */}
+  <div className="absolute top-[35%] left-[42%] w-[180px] h-[180px] rounded-full bg-[#f1d8c9] opacity-35 blur-[25px]" />
 
-      <svg
-        viewBox="0 0 1440 900"
-        preserveAspectRatio="xMidYMid slice"
-        className="absolute inset-0 w-full h-full"
-      >
-        <defs>
 
-          {/* Main blob */}
-          <linearGradient
-            id="blobGradient"
-            x1="0"
-            y1="0"
-            x2="1"
-            y2="1"
-          >
-            <stop
-              offset="0%"
-              stopColor="#ffffff"
-            />
+  {/* =================================================
+      PINTEREST STYLE CREATIVE COLLAGE
+  ================================================== */}
 
-            <stop
-              offset="48%"
-              stopColor="#f4f6f8"
-            />
+  {/* Top-left editorial card */}
+  <div
+    className="
+      absolute
+      top-[8%]
+      left-[7%]
+      w-[210px]
+      h-[260px]
+      rotate-[-7deg]
+      rounded-[24px]
+      bg-white
+      shadow-[0_20px_45px_rgba(60,70,90,0.12)]
+      p-5
+    "
+  >
+    <div className="h-full rounded-[18px] bg-[#edf3f8] relative overflow-hidden">
 
-            <stop
-              offset="100%"
-              stopColor="#c9d1da"
-            />
-          </linearGradient>
+      <div className="absolute top-7 left-6 w-16 h-16 rounded-full bg-[#315b82]" />
 
-          {/* Blob highlight */}
-          <linearGradient
-            id="blobHighlight"
-            x1="0"
-            y1="0"
-            x2="1"
-            y2="1"
-          >
-            <stop
-              offset="0%"
-              stopColor="#ffffff"
-              stopOpacity="0.9"
-            />
+      <div className="absolute top-[72px] left-12 w-[100px] h-[7px] rounded-full bg-[#8299ae]" />
+      <div className="absolute top-[90px] left-12 w-[70px] h-[6px] rounded-full bg-[#b8c5d1]" />
 
-            <stop
-              offset="100%"
-              stopColor="#ffffff"
-              stopOpacity="0"
-            />
-          </linearGradient>
+      <div className="absolute bottom-8 left-6 right-6">
+        <div className="text-[11px] uppercase tracking-[3px] text-[#315b82]">
+          Workflow
+        </div>
 
-          {/* Sphere */}
-          <radialGradient
-            id="sphereGradient"
-            cx="30%"
-            cy="20%"
-          >
-            <stop
-              offset="0%"
-              stopColor="#ffffff"
-            />
+        <div className="mt-2 h-[2px] bg-[#315b82] w-full" />
 
-            <stop
-              offset="48%"
-              stopColor="#eef1f5"
-            />
+        <div className="mt-3 flex gap-2">
+          <span className="w-7 h-2 rounded-full bg-[#315b82]" />
+          <span className="w-10 h-2 rounded-full bg-[#b7c4d0]" />
+          <span className="w-5 h-2 rounded-full bg-[#d1dbe4]" />
+        </div>
+      </div>
 
-            <stop
-              offset="100%"
-              stopColor="#b6bec9"
-            />
-          </radialGradient>
+    </div>
+  </div>
 
-          {/* Blue leaves */}
-          <linearGradient
-            id="blueLeaf"
-            x1="0"
-            y1="0"
-            x2="1"
-            y2="1"
-          >
-            <stop
-              offset="0%"
-              stopColor="#4d80dc"
-            />
 
-            <stop
-              offset="100%"
-              stopColor="#183f9f"
-            />
-          </linearGradient>
+  {/* Right tall creative poster */}
+  <div
+    className="
+      absolute
+      top-[7%]
+      right-[7%]
+      w-[190px]
+      h-[330px]
+      rotate-[6deg]
+      rounded-[28px]
+      bg-[#253c53]
+      shadow-[0_25px_55px_rgba(40,55,75,0.18)]
+      overflow-hidden
+    "
+  >
 
-          {/* Shadow */}
-          <filter
-            id="sceneShadow"
-            x="-30%"
-            y="-30%"
-            width="160%"
-            height="170%"
-          >
-            <feDropShadow
-              dx="0"
-              dy="25"
-              stdDeviation="25"
-              floodColor="#64748b"
-              floodOpacity="0.20"
-            />
-          </filter>
+    <div className="absolute top-7 left-7 text-[10px] uppercase tracking-[4px] text-[#b8c9d8]">
+      Support
+    </div>
 
-          <filter
-            id="softBlur"
-            x="-50%"
-            y="-50%"
-            width="200%"
-            height="200%"
-          >
-            <feGaussianBlur stdDeviation="22" />
-          </filter>
+    <div className="absolute top-[75px] left-7">
+      <div className="w-[105px] h-[105px] rounded-full border border-[#7891a8] flex items-center justify-center">
+        <div className="w-[65px] h-[65px] rounded-full border-[8px] border-[#dce7ef]" />
+      </div>
+    </div>
 
-        </defs>
+    <div className="absolute bottom-8 left-7 right-7">
+      <div className="text-[23px] leading-6 font-semibold text-white">
+        Solve.
+        <br />
+        Track.
+        <br />
+        Close.
+      </div>
 
-        {/* =================================================
-            FLOOR SHADOW
-        ================================================== */}
+      <div className="mt-4 h-[1px] bg-[#6f879d]" />
+    </div>
 
-        <ellipse
-          cx="720"
-          cy="820"
-          rx="560"
-          ry="55"
-          fill="#64748b"
-          opacity="0.16"
-          filter="url(#softBlur)"
-        />
+  </div>
 
-        {/* =================================================
-            MAIN ORGANIC 3D SHAPE
-        ================================================== */}
 
-        <path
-          d="
-            M175 700
+  {/* Small tilted paper */}
+  <div
+    className="
+      absolute
+      top-[46%]
+      left-[7%]
+      w-[145px]
+      h-[170px]
+      rotate-[8deg]
+      rounded-[20px]
+      bg-[#fffaf4]
+      shadow-[0_18px_35px_rgba(70,70,70,0.12)]
+      p-5
+    "
+  >
 
-            C115 640
-            120 555
-            165 485
+    <div className="text-[9px] uppercase tracking-[3px] text-[#8b8178]">
+      Service
+    </div>
 
-            C205 425
-            185 340
-            220 270
+    <div className="mt-5 space-y-3">
 
-            C255 200
-            330 175
-            405 215
+      <div className="flex items-center gap-2">
+        <span className="w-3 h-3 rounded-full border-2 border-[#315b82]" />
+        <span className="h-2 w-16 rounded-full bg-[#d8d1ca]" />
+      </div>
 
-            C465 248
-            510 225
-            555 190
+      <div className="flex items-center gap-2">
+        <span className="w-3 h-3 rounded-full bg-[#315b82]" />
+        <span className="h-2 w-20 rounded-full bg-[#d8d1ca]" />
+      </div>
 
-            C625 135
-            725 145
-            775 205
+      <div className="flex items-center gap-2">
+        <span className="w-3 h-3 rounded-full border-2 border-[#315b82]" />
+        <span className="h-2 w-12 rounded-full bg-[#d8d1ca]" />
+      </div>
 
-            C820 260
-            875 270
-            935 300
+    </div>
 
-            C1020 342
-            1075 420
-            1050 500
+    <div className="absolute bottom-5 left-5 right-5 h-[3px] bg-[#315b82]" />
 
-            C1030 565
-            950 590
-            935 655
+  </div>
 
-            C920 715
-            850 760
-            775 750
 
-            C690 738
-            645 785
-            555 790
+  {/* Bottom-left abstract card */}
+  <div
+    className="
+      absolute
+      bottom-[9%]
+      left-[16%]
+      w-[190px]
+      h-[130px]
+      rotate-[-4deg]
+      rounded-[25px]
+      bg-[#d9e5ef]
+      shadow-[0_18px_40px_rgba(50,70,90,0.12)]
+      overflow-hidden
+    "
+  >
 
-            C470 795
-            415 750
-            345 770
+    <div className="absolute -right-8 -top-8 w-[120px] h-[120px] rounded-full border-[18px] border-[#6e8aa3]" />
 
-            C275 790
-            215 750
-            175 700
+    <div className="absolute bottom-6 left-6">
+      <div className="text-[10px] uppercase tracking-[3px] text-[#315b82]">
+        Performance
+      </div>
 
-            Z
-          "
-          fill="url(#blobGradient)"
-          filter="url(#sceneShadow)"
-        />
+      <div className="mt-2 flex items-end gap-2">
+        <div className="w-3 h-8 rounded-t bg-[#315b82]" />
+        <div className="w-3 h-12 rounded-t bg-[#7895ae]" />
+        <div className="w-3 h-16 rounded-t bg-[#a9bdce]" />
+        <div className="w-3 h-10 rounded-t bg-[#c4d2dd]" />
+      </div>
+    </div>
 
-        {/* Blob soft highlight */}
-        <path
-          d="
-            M190 625
-            C150 550 205 475 220 410
-            C240 325 230 270 300 235
-            C355 208 410 260 475 270
-            C550 280 575 210 650 205
-            C720 200 760 255 820 285
-            C885 318 975 360 985 435
-            C995 495 925 520 890 570
-            C850 630 900 690 820 715
-            C750 738 700 680 630 690
-            C550 700 500 750 425 720
-            C350 690 310 730 255 690
-            C225 670 205 650 190 625
-            Z
-          "
-          fill="url(#blobHighlight)"
-          opacity="0.55"
-        />
+  </div>
 
-        {/* =================================================
-            FLOATING SPHERE
-        ================================================== */}
 
-        <circle
-          cx="960"
-          cy="145"
-          r="70"
-          fill="url(#sphereGradient)"
-          filter="url(#sceneShadow)"
-        />
+  {/* Bottom-right small card */}
+  <div
+    className="
+      absolute
+      bottom-[10%]
+      right-[13%]
+      w-[175px]
+      h-[135px]
+      rotate-[5deg]
+      rounded-[25px]
+      bg-white
+      shadow-[0_18px_40px_rgba(60,70,90,0.12)]
+      p-5
+    "
+  >
 
-        <ellipse
-          cx="935"
-          cy="120"
-          rx="28"
-          ry="17"
-          fill="#ffffff"
-          opacity="0.55"
-        />
+    <div className="text-[9px] uppercase tracking-[3px] text-[#8996a3]">
+      Management
+    </div>
 
-        {/* Small floating sphere */}
-        <circle
-          cx="1130"
-          cy="550"
-          r="22"
-          fill="url(#blueLeaf)"
-        />
+    <div className="mt-5 flex items-center gap-3">
 
-        {/* Small white sphere */}
-        <circle
-          cx="250"
-          cy="250"
-          r="14"
-          fill="#ffffff"
-          opacity="0.9"
-        />
-{/* =================================================
-    SOFT LIGHT BLUE GLASS BUBBLE
-================================================== */}
+      <div className="w-10 h-10 rounded-full bg-[#dce7f0] flex items-center justify-center">
+        <div className="w-4 h-4 rounded-full bg-[#315b82]" />
+      </div>
 
-<g transform="translate(360 380)">
+      <div>
+        <div className="h-2 w-20 rounded-full bg-[#9eabb7]" />
+        <div className="mt-2 h-2 w-12 rounded-full bg-[#d5dce2]" />
+      </div>
 
-  {/* Soft background glow */}
-  <circle
-    cx="145"
-    cy="145"  
-    r="95"
-    fill="#dbe8f7"
-    opacity="0.20"
-    filter="url(#softBlur)"
-  />
+    </div>
 
-  {/* Main glass bubble */}
-  <circle
-    cx="145"
-    cy="145"
-    r="62"
-    fill="#c9dcf5"
-    opacity="0.32"
-    filter="url(#sceneShadow)"
-  />
+    <div className="mt-5 flex gap-1">
+      <span className="w-8 h-1.5 rounded-full bg-[#315b82]" />
+      <span className="w-5 h-1.5 rounded-full bg-[#b8c6d1]" />
+      <span className="w-10 h-1.5 rounded-full bg-[#dce3e8]" />
+    </div>
 
-  {/* Soft white reflection */}
-  <ellipse
-    cx="125"
-    cy="120"
-    rx="25"
-    ry="15"
-    fill="#ffffff"
-    opacity="0.38"
-    transform="rotate(-25 125 120)"
-  />
+  </div>
 
-  {/* Small light-blue bubble */}
-  <circle
-    cx="210"
-    cy="185"
-    r="34"
-    fill="#d2e2f6"
-    opacity="0.42"
-  />
 
-  {/* Tiny floating bubble */}
-  <circle
-    cx="92"
-    cy="205"
-    r="15"
-    fill="#bcd3ef"
-    opacity="0.40"
-  />
+  {/* Tiny floating design elements */}
 
-  {/* Tiny soft dot */}
-  <circle
-    cx="225"
-    cy="105"
-    r="6"
-    fill="#a9c6ea"
-    opacity="0.42"
-  />
+  <div className="absolute top-[30%] left-[27%] w-3 h-3 rounded-full bg-[#315b82]" />
 
-</g>
-        {/* =================================================
-            LEFT ABSTRACT DECOR
-        ================================================== */}
+  <div className="absolute top-[20%] left-[48%] w-2 h-2 rounded-full bg-[#d39b82]" />
 
-        <path
-          d="M170 735 C130 680 125 620 155 570"
-          fill="none"
-          stroke="#64748b"
-          strokeWidth="8"
-          strokeLinecap="round"
-        />
+  <div className="absolute bottom-[25%] right-[31%] w-4 h-4 rounded-full border-2 border-[#7895ae]" />
 
-        <ellipse
-          cx="140"
-          cy="670"
-          rx="15"
-          ry="38"
-          fill="#6c89b5"
-          transform="rotate(-38 140 670)"
-        />
+  <div className="absolute top-[65%] right-[28%] w-10 h-[2px] rotate-[-25deg] bg-[#9db0c1]" />
 
-        <ellipse
-          cx="150"
-          cy="710"
-          rx="14"
-          ry="38"
-          fill="url(#blueLeaf)"
-          transform="rotate(35 150 710)"
-        />
-
-        <ellipse
-          cx="137"
-          cy="625"
-          rx="13"
-          ry="31"
-          fill="#8799ad"
-          transform="rotate(-45 137 625)"
-        />
-
-        <ellipse
-          cx="172"
-          cy="730"
-          rx="13"
-          ry="32"
-          fill="#9db7d3"
-          transform="rotate(25 172 730)"
-        />
-
-        {/* =================================================
-            RIGHT ABSTRACT LEAVES
-        ================================================== */}
-
-        <path
-          d="M1100 750 C1160 690 1170 620 1135 555"
-          fill="none"
-          stroke="#59677a"
-          strokeWidth="9"
-          strokeLinecap="round"
-        />
-
-        <ellipse
-          cx="1150"
-          cy="655"
-          rx="16"
-          ry="40"
-          fill="#65748a"
-          transform="rotate(42 1150 655)"
-        />
-
-        <ellipse
-          cx="1140"
-          cy="700"
-          rx="17"
-          ry="42"
-          fill="url(#blueLeaf)"
-          transform="rotate(-35 1140 700)"
-        />
-
-        <ellipse
-          cx="1162"
-          cy="610"
-          rx="14"
-          ry="34"
-          fill="#718198"
-          transform="rotate(38 1162 610)"
-        />
-
-        <ellipse
-          cx="1115"
-          cy="735"
-          rx="15"
-          ry="35"
-          fill="#91aac5"
-          transform="rotate(-25 1115 735)"
-        />
-
-      </svg>
+</div>
 
       {/* =====================================================
           LOGIN CARD
@@ -610,7 +384,7 @@ function Login() {
         className="
           absolute
           top-1/2
-          left-[25%]
+          left-[35%]
           -translate-y-1/2
           w-[360px]
           sm:w-[390px]
@@ -625,20 +399,7 @@ function Login() {
         "
       >
 
-        {/* Blue circle */}
-        <div
-          className="
-            absolute
-            top-5
-            right-5
-            w-8
-            h-8
-            rounded-full
-            bg-[#3974df]
-            shadow-[0_5px_15px_rgba(55,110,220,0.35)]
-          "
-        />
-
+        
         {/* Heading */}
         <h1
           className="
@@ -829,12 +590,12 @@ function Login() {
               w-full
               h-11
               rounded-full
-              bg-[#3974df]
+              bg-[#0d3559]
               text-white
               text-[13px]
               font-medium
               shadow-[0_7px_18px_rgba(55,110,220,0.32)]
-              hover:bg-[#3068d2]
+              hover:bg-[#0d3559]
               hover:-translate-y-[1px]
               active:translate-y-0
               transition-all

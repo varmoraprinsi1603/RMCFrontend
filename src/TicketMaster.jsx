@@ -117,7 +117,8 @@ export default function TicketMaster() {
   const [tickets, setTickets] = useState([]);
   const [categories, setCategories] = useState([]);
   const [history, setHistory] = useState([]);
-
+  const [assignmentHistory, setAssignmentHistory] = useState([]);
+  const [originalAssignedTo, setOriginalAssignedTo] = useState("");
   const [formData, setFormData] = useState(emptyForm);
 
   const [searchText, setSearchText] = useState("");
@@ -127,6 +128,8 @@ export default function TicketMaster() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [assigning, setAssigning] = useState(false);
+  const [mailSending, setMailSending] = useState(false);   
 
   const [attachments, setAttachments] = useState([]);
   const [attachmentLoading, setAttachmentLoading] = useState(false);
@@ -148,6 +151,75 @@ export default function TicketMaster() {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
   };
+
+
+  const handleSendMail = async () => {
+  if (!formData.EmailID?.trim()) {
+    setError("Email ID is required.");
+    return;
+  }
+
+  try {
+    setMailSending(true);
+    setError("");
+    setMessage("");
+
+    const subject = formData.TicketNo
+      ? `RMC ERP - Ticket ${formData.TicketNo}`
+      : "RMC ERP - Support Ticket";
+
+    const body = `
+Dear Customer,
+
+This is regarding your support ticket.
+
+Ticket No: ${formData.TicketNo || "New Ticket"}
+Title: ${formData.Title || "-"}
+Status: ${formData.Status || "Open"}
+Priority: ${formData.Priority || "-"}
+Description: ${formData.Description || "-"}
+
+Regards,
+RMC ERP Support
+`;
+
+    const query =
+      `ToEmail=${encodeURIComponent(formData.EmailID.trim())}` +
+      `&Subject=${encodeURIComponent(subject)}` +
+      `&Body=${encodeURIComponent(body)}`;
+
+    const response = await fetch(
+      `${API_BASE_URL}/SendTicketMail?${query}`,
+      {
+        method: "POST",
+        headers: authHeaders,
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result?.Message ||
+        result?.message ||
+        "Unable to send mail."
+      );
+    }
+
+    setMessage(
+      result?.Message ||
+      result?.message ||
+      "Mail sent successfully."
+    );
+  } catch (err) {
+    setError(
+      err.message ||
+      "Unable to send mail."
+    );
+  } finally {
+    setMailSending(false);
+  }
+};
 
   /* =======================================================
      LOAD TICKETS
@@ -269,6 +341,45 @@ export default function TicketMaster() {
     }
   };
 
+  const loadTicketAssignmentHistory = async (ticketID) => {
+  if (!ticketID) {
+    setAssignmentHistory([]);
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/GetTicketAssignmentHistory?TicketID=${ticketID}`,
+      {
+        method: "GET",
+        headers: authHeaders,
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result?.Message ||
+        result?.message ||
+        "Failed to load assignment history."
+      );
+    }
+
+    setAssignmentHistory(
+      result?.Data ||
+      result?.data ||
+      []
+    );
+  } catch (error) {
+    console.error(
+      "Assignment History Error:",
+      error
+    );
+
+    setAssignmentHistory([]);
+  }
+};
   /* =======================================================
      LOAD TICKET BY ID
   ======================================================= */
@@ -307,10 +418,15 @@ export default function TicketMaster() {
       const mapped = mapTicketToForm(ticket);
 
       setFormData(mapped);
+
+      setOriginalAssignedTo(
+      getValue(ticket, "AssignedTo", "assignedTo") || ""
+      );
       setFormMode("edit");
       setPage("form");
 
       await loadTicketHistory(ticketID);
+      await loadTicketAssignmentHistory(ticketID);
       await loadAttachments(ticketID);
     } catch (err) {
       setError(err.message || "Unable to load ticket.");
@@ -838,6 +954,7 @@ export default function TicketMaster() {
     setMessage("");
     setError("");
     setHistory([]);
+    setOriginalAssignedTo("");
     clearAttachmentPreviewUrls();
     setAttachments([]);
     setAttachmentError("");
@@ -934,6 +1051,7 @@ export default function TicketMaster() {
           Priority: formData.Priority,
 
           CreatedBy: createdBy,
+          AssignBy: createdBy,
           CreatedDate: formData.CreatedDate || null,
           CompanyName:
             formData.CompanyName || null,
@@ -961,22 +1079,7 @@ export default function TicketMaster() {
 
           OtherRemarks:
             formData.OtherRemarks || null,
-
-          AssignBy:
-            formData.AssignBy
-           ? Number(formData.AssignBy)
-           : null,
-
-          AssignedTo:
-            formData.AssignedTo
-            ? Number(formData.AssignedTo)
-            : null,
-
-          AssignByName:
-           formData.AssignByName || null,
-
-          AssignedToName:
-           formData.AssignedToName || null,
+      
           };
 
         response = await fetch(
@@ -987,79 +1090,69 @@ export default function TicketMaster() {
             body: JSON.stringify(payload),
           }
         );
-      } else {
-        const payload = {
-          TicketID: Number(formData.TicketID),
+          } else {
+      const payload = {
+        TicketID: Number(formData.TicketID),
+        TicketNo: formData.TicketNo || null,
+        Title: formData.Title,
+        Description: formData.Description || null,
+        CategoryID: Number(formData.CategoryID),
+        Priority: formData.Priority,
+        CompanyName: formData.CompanyName || null,
+        ContactPerson: formData.ContactPerson || null,
+        ContactNo: formData.ContactNo || null,
+        EmailID: formData.EmailID || null,
+        StartDate: formData.StartDate || null,
+        EndDate: formData.EndDate || null,
+        Problem: formData.Problem || null,
+        Remarks: formData.Remarks || null,
+        OtherRemarks: formData.OtherRemarks || null,
+      };
 
-          TicketNo:
-            formData.TicketNo || null,
+      response = await fetch(
+        `${API_BASE_URL}/UpdateTicket`,
+        {
+          method: "PUT",
+          headers: authHeaders,
+          body: JSON.stringify(payload),
+        }
+      );
 
-          Title: formData.Title,
-
-          Description:
-            formData.Description || null,
-
-          CategoryID: Number(
-            formData.CategoryID
-          ),
-
-          Priority: formData.Priority,
-
-          CompanyName:
-            formData.CompanyName || null,
-
-          ContactPerson:
-            formData.ContactPerson || null,
-
-          ContactNo:
-            formData.ContactNo || null,
-
-          EmailID:
-            formData.EmailID || null,
-
-          StartDate:
-            formData.StartDate || null,
-
-          EndDate:
-            formData.EndDate || null,
-
-          Problem:
-            formData.Problem || null,
-
-          Remarks:
-            formData.Remarks || null,
-
-          OtherRemarks:
-            formData.OtherRemarks || null,
-
-          AssignBy:
-            formData.AssignBy
-              ? Number(formData.AssignBy)
-              : null,
-
-          AssignedTo:
+      // First-time assignment
+      if (
+        !originalAssignedTo &&
+        formData.AssignedTo
+      ) {
+        const assignResponse = await fetch(
+          `${API_BASE_URL}/AssignTicket?TicketID=${encodeURIComponent(
+            formData.TicketID
+          )}&AssignedTo=${encodeURIComponent(
             formData.AssignedTo
-              ? Number(formData.AssignedTo)
-              : null,
-
-          AssignByName:
-            formData.AssignByName || null,
-
-          AssignedToName:
-            formData.AssignedToName || null,
-        };
-
-        response = await fetch(
-          `${API_BASE_URL}/UpdateTicket`,
+          )}&AssignBy=${encodeURIComponent(
+            currentUserId
+          )}`,
           {
             method: "PUT",
             headers: authHeaders,
-            body: JSON.stringify(payload),
           }
         );
-      }
 
-      const result = await response.json();
+        const assignResult =
+          await assignResponse.json();
+
+        if (
+          !assignResponse.ok ||
+          assignResult?.Status === 0
+        ) {
+          throw new Error(
+            assignResult?.Message ||
+              assignResult?.message ||
+              "Unable to assign ticket."
+          );
+        }
+      }
+    }
+    const result = await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -1106,6 +1199,69 @@ export default function TicketMaster() {
     }
   };
 
+const handleAssignTicket = async () => {
+  if (roleName !== "Admin") {
+    window.alert("Only Admin can assign or reassign tickets.");
+    return;
+  }
+
+  if (!formData.TicketID) {
+    window.alert("Please save the ticket first.");
+    return;
+  }
+
+  if (!formData.AssignedTo) {
+    window.alert("Please select a Support Executive.");
+    return;
+  }
+
+  if (!currentUserId) {
+    window.alert("Current user information is missing.");
+    return;
+  }
+
+  try {
+    setAssigning(true);
+
+    const response = await fetch(
+      `${API_BASE_URL}/AssignTicket?TicketID=${encodeURIComponent(
+        formData.TicketID
+      )}&AssignedTo=${encodeURIComponent(
+        formData.AssignedTo
+      )}&AssignBy=${encodeURIComponent(
+        currentUserId
+      )}`,
+      {
+        method: "PUT",
+        headers: authHeaders,
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || result?.Status === 0) {
+      throw new Error(
+        result?.Message ||
+        result?.message ||
+        "Unable to assign ticket."
+      );
+    }
+
+    await loadTickets();
+    await loadTicketById(formData.TicketID);
+
+    window.alert("Ticket reassigned successfully.");
+  } catch (error) {
+    console.error("Assign Ticket Error:", error);
+
+    window.alert(
+      error?.message ||
+        "Unable to assign ticket."
+    );
+  } finally {
+    setAssigning(false);
+  }
+};
   /* =======================================================
      CHANGE STATUS
   ======================================================= */
@@ -1472,6 +1628,148 @@ const getTodayInputDate = () => {
      RENDER
   ======================================================= */
 
+const activityItems = useMemo(() => {
+  const statusItems = (history || []).map(
+    (item, index) => {
+      const oldStatus = getValue(
+        item,
+        "OldStatus",
+        "oldStatus"
+      );
+
+      const newStatus = getValue(
+        item,
+        "NewStatus",
+        "newStatus"
+      );
+
+      const changedBy = getValue(
+        item,
+        "ChangedByName",
+        "changedByName"
+      );
+
+      const changedDate = getValue(
+        item,
+        "ChangedDate",
+        "changedDate"
+      );
+
+      let title = "Status Updated";
+      let description = "";
+
+      if (!oldStatus && newStatus === "Open") {
+        title = "Ticket Created";
+        description = "Open";
+      }
+      else if (
+        oldStatus === "Open" &&
+        newStatus === "In Progress"
+      ) {
+        title = "Work Started";
+        description = "Open → In Progress";
+      }
+      else if (
+        oldStatus === "In Progress" &&
+        newStatus === "Resolved"
+      ) {
+        title = "Ticket Resolved";
+        description = "In Progress → Resolved";
+      }
+      else if (
+        oldStatus === "Resolved" &&
+        newStatus === "Closed"
+      ) {
+        title = "Ticket Closed";
+        description = "Resolved → Closed";
+      }
+      else {
+        title = "Status Updated";
+        description = oldStatus
+          ? `${oldStatus} → ${newStatus}`
+          : newStatus || "Status updated";
+      }
+
+      return {
+        id: `status-${
+          getValue(
+            item,
+            "TicketStatusHistoryID",
+            "ticketStatusHistoryID"
+          ) || index
+        }`,
+        type: "status",
+        title,
+        actor: changedBy || "System",
+        description,
+        date: changedDate,
+        sortDate:
+          new Date(changedDate).getTime() || 0,
+      };
+    }
+  );
+
+  const assignmentItems =
+    (assignmentHistory || []).map(
+      (item, index) => {
+        const assignedToName = getValue(
+          item,
+          "AssignedToName",
+          "assignedToName"
+        );
+
+        const assignedByName = getValue(
+          item,
+          "AssignedByName",
+          "assignedByName"
+        );
+
+        const assignedDate = getValue(
+          item,
+          "AssignedDate",
+          "assignedDate"
+        );
+
+        return {
+          id: `assignment-${
+            getValue(
+              item,
+              "TicketAssignmentHistoryID",
+              "ticketAssignmentHistoryID"
+            ) || index
+          }`,
+
+          type: "assignment",
+
+          title:
+            index === 0
+              ? "Ticket Assigned"
+              : "Ticket Reassigned",
+
+          actor:
+            assignedByName || "Administrator",
+
+          description: `Assigned → ${
+            assignedToName || "Support Executive"
+          }`,
+
+          date: assignedDate,
+
+          sortDate:
+            new Date(assignedDate).getTime() || 0,
+        };
+      }
+    );
+
+  return [
+    ...statusItems,
+    ...assignmentItems,
+  ].sort(
+    (a, b) => a.sortDate - b.sortDate
+  );
+}, [history, assignmentHistory]);
+
+
   return (
     <div className="min-h-screen bg-[#eef3f9] text-[#173b68]">
       <div className="w-full">
@@ -1509,7 +1807,7 @@ const getTodayInputDate = () => {
                 <button
                   type="button"
                   onClick={openNewTicket}
-                  className="h-10 px-4 rounded-lg bg-[#176bb3] text-white text-[13px] font-semibold hover:bg-[#125b98] shadow-[0_7px_18px_rgba(23,107,179,0.18)] flex items-center gap-2"
+                  className="h-10 px-4 rounded-lg bg-[#34495e] text-white text-[13px] font-semibold hover:bg-[#34495e] shadow-[0_7px_18px_rgba(23,107,179,0.18)] flex items-center gap-2"
                 >
                   <Plus size={16} />
                   New Ticket
@@ -1728,110 +2026,93 @@ const getTodayInputDate = () => {
                         className="w-full text-left bg-white border border-[#dce6ef] rounded-xl p-3 hover:border-[#8bb5d6] hover:shadow-[0_8px_25px_rgba(25,75,115,0.07)] transition"
                       >
 
-                        <div className="flex flex-col xl:flex-row xl:items-center gap-3">
+<div className="flex flex-col xl:flex-row xl:items-center gap-4">
 
-                          <div className="min-w-0 flex-1">
+  {/* LEFT SIDE - TICKET DETAILS */}
+  <div className="min-w-0 flex-1">
 
-                            <div className="flex items-center gap-2 whitespace-nowrap">
+    <div className="flex items-center gap-2 whitespace-nowrap">
 
-                              <span className="text-[14px] font-semibold text-[#155a92]">
-                                {ticketNo ||
-                                  "Ticket"}
-                              </span>
+      <span className="text-[14px] font-semibold text-[#155a92]">
+        {ticketNo || "Ticket"}
+      </span>
 
-                              <StatusBadge
-                                status={
-                                  status
-                                }
-                              />
+      <StatusBadge status={status} />
 
-                              <PriorityBadge
-                                priority={
-                                  priority
-                                }
-                              />
+      <PriorityBadge priority={priority} />
 
-                            </div>  
+    </div>
 
-                            <div className="mt-2 text-[14px] font-semibold text-[#294e70] truncate">
-                              {title ||
-                                problem ||
-                                "Ticket Issue"}
-                            </div>
+    <div className="mt-2 text-[14px] font-semibold text-[#294e70] truncate">
+      {title || problem || "Ticket Issue"}
+    </div>
 
-                            <div className="mt-1 text-[12px] text-[#8294a7] line-clamp-1">
-                              {problem ||
-                                "No problem description"}
-                            </div>
+    <div className="mt-1 text-[12px] text-[#8294a7] line-clamp-1">
+      {problem || "No problem description"}
+    </div>
 
-                          </div>
+  </div>
 
-                          <div className="grid grid-cols-3 gap-x-8 gap-y-2 xl:flex-1 xl:min-w-0">
 
-                            <InfoSmall
-                              icon={
-                                <Building2
-                                  size={14}
-                                />
-                              }
-                              label="Company"
-                              value={
-                                company ||
-                                "-"
-                              }
-                            />
+  {/* RIGHT SIDE - CUSTOMER DETAILS */}
+  <div className="grid grid-cols-2 gap-x-10 gap-y-2 xl:w-[52%] xl:flex-none">
 
-                            <InfoSmall
-                              icon={
-                                <UserRound
-                                  size={14}
-                                />
-                              }
-                              label="Contact"
-                              value={
-                                contact ||
-                                "-"
-                              }
-                            />
-                            
-                            <InfoSmall
-                              icon={
-                                <Clock3
-                                  size={14}
-                                />
-                              }
-                              label="Created"
-                              value={formatDate(
-                                createdDate
-                              )}
-                            />
+    <InfoSmall
+      icon={
+        <Building2 size={14} />
+      }
+      label="Company"
+      value={company || "-"}
+    />
 
-                          </div>
+    <InfoSmall
+      icon={
+        <UserRound size={14} />
+      }
+      label="Contact"
+      value={contact || "-"}
+    />
 
-                        </div>
-                           <div className="mt-2 pt-2 border-t border-[#edf1f5] flex items-center justify-between text-[11px] text-[#92a1b0]">
+  </div>
 
-                        <span>
-    Entry By:{" "}
-    <span className="text-[#627b92]">
-      {createdBy || "-"}
+</div>
+
+
+{/* BOTTOM INFO */}
+<div className="mt-2 pt-2 border-t border-[#edf1f5]">
+
+  <div className="grid grid-cols-3 items-center gap-3 text-[11px] text-[#92a1b0]">
+
+    {/* ENTRY BY */}
+    <span className="min-w-0 truncate">
+      Entry By:{" "}
+      <span className="text-[#627b92]">
+        {createdBy || "-"}
+      </span>
     </span>
-  </span>
 
-  <span className="text-[#627b92]">
-    Assigned To:{" "}
-    <span className="text-[#627b92]">
-      {assignedTo || "-"}
+
+    {/* ASSIGNED TO */}
+    <span className="min-w-0 truncate">
+      Assigned To:{" "}
+      <span className="text-[#627b92]">
+        {assignedTo || "-"}
+      </span>
     </span>
-  </span>
 
-  <span className="text-[#176bb3] font-medium">
-    Open Ticket →
-  </span>
+
+    {/* CREATED DATE */}
+    <span className="min-w-0 truncate">
+      Created Date:{" "}
+      <span className="text-[#627b92]">
+        {formatDate(createdDate)}
+      </span>
+    </span>
+
+  </div>
 
 </div>
                         
-
                       </button>
                     );
                   }
@@ -2131,32 +2412,55 @@ const getTodayInputDate = () => {
                       placeholder="Enter contact number"
                       className={`${inputClass} pl-9`}
                     />
-                  </div>
+                  </div>  
                 </Field>
 
-                <Field label="Email ID">
-                  <div className="relative">
-                    <Mail
-                      size={15}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8ea2b5]"
-                    />
+                  <Field label="Email ID">
+  <div className="relative">
+    <input
+      type="email"
+      value={formData.EmailID}
+      onChange={(e) =>
+        handleChange(
+          "EmailID",
+          e.target.value
+        )
+      }
+      placeholder="Enter email ID"
+      className={`${inputClass} pr-10`}
+    />
 
-                    <input
-                      type="email"
-                      value={
-                        formData.EmailID
-                      }
-                      onChange={(e) =>
-                        handleChange(
-                          "EmailID",
-                          e.target.value
-                        )
-                      }
-                      placeholder="Enter email ID"
-                      className={`${inputClass} pl-9`}
-                    />
-                  </div>
-                </Field>
+    <button
+      type="button"
+      onClick={handleSendMail}
+      disabled={
+        !formData.EmailID ||
+        mailSending
+      }
+      className="absolute right-2 top-1/2 -translate-y-1/2
+                 w-7 h-7 rounded-md
+                 flex items-center justify-center
+                 text-[#176bb3]
+                 hover:bg-[#edf5fc]
+                 disabled:text-[#b8c3ce]
+                 disabled:cursor-not-allowed"
+      title={
+        mailSending
+          ? "Sending Mail..."
+          : "Send Mail"
+      }
+    >
+      {mailSending ? (
+        <Loader2
+          size={15}
+          className="animate-spin"
+        />
+      ) : (
+        <Mail size={15} />
+      )}
+    </button>
+  </div>
+</Field>
 
               </div>
 
@@ -2262,62 +2566,95 @@ const getTodayInputDate = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2">
 
                 <Field label="Assign By">
-                  <input
-                    type="text"
-                    value={formData.AssignByName || ""}
-                    onChange={(e) =>
-                      handleChange(
-                        "AssignByName",
-                        e.target.value
-                      )
-                    }
-                    placeholder="Assign By"
-                    className={inputClass}
-                  />
+                <input
+                  type="text"
+                  value={currentUsername}
+                  readOnly
+                  className={`${inputClass} bg-[#f7f9fb]`}
+                />
                 </Field>
 
-                <Field label="Assign To">
-  <select
-    value={formData.AssignedTo || ""}
-    onChange={(e) => {
-      const selectedID = e.target.value;
+<Field label="Assign To">
+  <div className="flex items-center gap-2">
+    <select
+      value={formData.AssignedTo || ""}
+      onChange={(e) => {
+        const selectedID = e.target.value;
 
-      const selectedUser =
-        supportExecutives.find(
-          (user) =>
-            String(user.UserID ?? user.userID) ===
-            String(selectedID)
+        const selectedUser =
+          supportExecutives.find(
+            (user) =>
+              String(user.UserID ?? user.userID) ===
+              String(selectedID)
+          );
+
+        handleChange("AssignedTo", selectedID);
+
+        handleChange(
+          "AssignedToName",
+          selectedUser?.Name ??
+            selectedUser?.name ??
+            ""
         );
-
-      handleChange(
-        "AssignedTo",
-        selectedID
-      );
-
-      handleChange(
-        "AssignedToName",
-        selectedUser?.Name ??
-          selectedUser?.name ??
-          ""
-      );
-    }}
-    className={inputClass}
-  >
-    <option value="">
-      Select Support Executive
-    </option>
-
-    {supportExecutives.map((user) => (
-      <option
-        key={user.UserID ?? user.userID}
-        value={user.UserID ?? user.userID}
-      >
-        {user.Name ?? user.name ?? user.UserName ?? user.userName}
+      }}
+      disabled={
+        roleName !== "Admin" ||
+        formMode === "new" ||
+        assigning
+      }
+      className={`${inputClass} ${
+        roleName !== "Admin" || formMode === "new"
+          ? "bg-[#f7f9fb] cursor-not-allowed"
+          : "cursor-pointer"
+      }`}
+    >
+      <option value="">
+        Select Support Executive
       </option>
-    ))}
-  </select>
-</Field>
 
+      {supportExecutives.map((user) => (
+        <option
+          key={user.UserID ?? user.userID}
+          value={user.UserID ?? user.userID}
+        >
+          {user.Name ??
+            user.name ??
+            user.UserName ??
+            user.userName}
+        </option>
+      ))}
+    </select>
+
+    {roleName === "Admin" &&
+      formMode === "edit" &&
+      formData.TicketID > 0 && (
+        <button
+          type="button"
+          onClick={handleAssignTicket}
+          disabled={
+            assigning ||
+            !formData.AssignedTo
+          }
+          className="h-9 px-4 shrink-0 rounded-lg bg-[#0d3559] text-white text-[12px] font-semibold hover:bg-[#0d3559] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+        >
+          {assigning ? (
+            <Loader2
+              size={14}
+              className="animate-spin"
+            />
+          ) : (
+            <Users size={14} />
+          )}
+
+          {assigning
+            ? "Saving..."
+            : formData.AssignedTo
+            ? "Reassign"
+            : "Assign"}
+        </button>
+      )}
+  </div>
+</Field>
                 <Field label="Status">
                   <SelectBox
                     value={
@@ -2476,7 +2813,7 @@ const getTodayInputDate = () => {
                         fileInputRef.current?.click();
                       }}
                       disabled={uploadingFile}
-                      className="h-10 px-4 rounded-lg bg-[#176bb3] text-white text-[12px] font-semibold hover:bg-[#125b98] disabled:opacity-60 flex items-center justify-center gap-2"
+                      className="h-10 px-4 rounded-lg bg-[#34495e] text-white text-[12px] font-semibold hover:bg-[#34495e] disabled:opacity-60 flex items-center justify-center gap-2"
                     >
                       {uploadingFile ? (
                         <Loader2 size={15} className="animate-spin" />
@@ -2616,7 +2953,7 @@ const getTodayInputDate = () => {
                   <div className="py-8 text-center text-[13px] text-[#8a9bad]">
                     Loading activity...
                   </div>
-                ) : history.length === 0 ? (
+                ) : activityItems.length === 0 ? (
                   <div className="py-8 text-center text-[13px] text-[#8a9bad]">
                     No activity available for this ticket.
                   </div>
@@ -2627,81 +2964,40 @@ const getTodayInputDate = () => {
 
                     <div className="space-y-3">
 
-                      {history.map(
-                        (item, index) => {
+                     {activityItems.map((item) => (
+  <div
+    key={item.id}
+    className="relative pl-7"
+  >
+    <div
+      className={`absolute left-0 top-1 w-[15px] h-[15px] rounded-full border-[3px] border-white shadow-[0_0_0_1px_#c8d9e7] ${
+        item.type === "assignment"
+          ? "bg-[#0d3559]"
+          : "bg-[#176bb3]"
+      }`}
+    />
 
-                          const oldStatus =
-                            getValue(
-                              item,
-                              "OldStatus",
-                              "oldStatus"
-                            );
+    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2">
+      <div>
+        <div className="text-[13px] font-semibold text-[#294e70]">
+          {item.actor}
+        </div>
 
-                          const newStatus =
-                            getValue(
-                              item,
-                              "NewStatus",
-                              "newStatus"
-                            );
+        <div className="mt-1 text-[12px] font-semibold text-[#58728a]">
+          {item.title}
+        </div>
 
-                          const changedBy =
-                            getValue(
-                              item,
-                              "ChangedByName",
-                              "changedByName"
-                            );
+        <div className="mt-0.5 text-[12px] text-[#687f95]">
+          {item.description}
+        </div>
+      </div>
 
-                          const changedDate =
-                            getValue(
-                              item,
-                              "ChangedDate",
-                              "changedDate"
-                            );
-
-                          return (
-                            <div
-                              key={
-                                getValue(
-                                  item,
-                                  "TicketStatusHistoryID",
-                                  "ticketStatusHistoryID"
-                                ) ||
-                                index
-                              }
-                              className="relative pl-7"
-                            >
-
-                              <div className="absolute left-0 top-1 w-[15px] h-[15px] rounded-full bg-[#176bb3] border-[3px] border-white shadow-[0_0_0_1px_#c8d9e7]" />
-
-                              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2">
-
-                                <div>
-                                  <div className="text-[13px] font-semibold text-[#294e70]">
-                                    {changedBy ||
-                                      "System"}
-                                  </div>
-
-                                  <div className="mt-1 text-[12px] text-[#687f95]">
-                                    {oldStatus
-                                      ? `${oldStatus} → ${newStatus}`
-                                      : newStatus ||
-                                        "Ticket created"}
-                                  </div>
-                                </div>
-
-                                <div className="text-[11px] text-[#93a2b0]">
-                                  {formatDateTime(
-                                    changedDate
-                                  )}
-                                </div>
-
-                              </div>
-
-                            </div>
-                          );
-                        }
-                      )}
-
+      <div className="text-[11px] text-[#93a2b0]">
+        {formatDateTime(item.date)}
+      </div>
+    </div>
+  </div>
+))}
                     </div>
                   </div>
                 )}
@@ -2788,7 +3084,7 @@ const getTodayInputDate = () => {
                     type="button"
                     onClick={handleSave}
                     disabled={saving}
-                    className="h-8 px-4 rounded-lg bg-[#176bb3] text-white text-[12px] font-semibold hover:bg-[#125b98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 shadow-[0_5px_12px_rgba(23,107,179,0.15)]"
+                    className="h-8 px-4 rounded-lg bg-[#34495e] text-white text-[12px] font-semibold hover:bg-[#34495e] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 shadow-[0_5px_12px_rgba(23,107,179,0.15)]"
                   >
                     <Save
                       size={15}

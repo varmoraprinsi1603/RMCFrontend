@@ -579,85 +579,73 @@ useEffect(() => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
           {/* Ticket Summary */}
-          <button
-            type="button"
-            onClick={() =>
-              navigate(
-                "/Dashboard/reports/ticket-summary"
-              )
-            }
-            className="text-left bg-white border border-[#dce6ef] rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-[#9dbbd5] transition"
-          >
+  <button
+  type="button"
+  onClick={() =>
+    navigate("/Dashboard/reports/ticket-summary")
+  }
+  className="text-left bg-white border border-[#dce6ef] rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-[#9dbbd5] transition h-[170px] w-full"
+>
+  <div className="flex items-start justify-between">
 
-            <div className="flex items-start justify-between">
+    <div className="w-11 h-11 rounded-xl bg-[#e8f2fb] flex items-center justify-center">
+      <FileBarChart2
+        size={21}
+        className="text-[#1b6bb3]"
+      />
+    </div>
 
-              <div className="w-11 h-11 rounded-xl bg-[#e8f2fb] flex items-center justify-center">
+    <ArrowRight
+      size={18}
+      className="text-[#8ba0b5]"
+    />
 
-                <FileBarChart2
-                  size={21}
-                  className="text-[#1b6bb3]"
-                />
+  </div>
 
-              </div>
+  <h2 className="mt-5 text-[16px] leading-5 font-semibold text-[#173b68]">
+    Ticket Summary
+  </h2>
 
-              <ArrowRight
-                size={18}
-                className="text-[#8ba0b5]"
-              />
-
-            </div>
-
-            <h2 className="mt-5 text-[16px] font-semibold text-[#173b68]">
-              Ticket Summary
-            </h2>
-
-            <p className="mt-2 text-[12px] leading-5 text-[#71869d]">
-              View ticket details based on date,
-              status, priority and assigned employee.
-            </p>
-
-          </button>
+  <p className="mt-2 text-[12px] leading-5 text-[#71869d]">
+    View ticket details based on date, status,
+    priority and assigned employee.
+  </p>
+</button>
 
           {/* Ticket Performance */}
-          <button
-            type="button"
-            onClick={() =>
-              navigate(
-                "/Dashboard/reports/ticket-performance"
-              )
-            }
-            className="text-left bg-white border border-[#dce6ef] rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-[#9dbbd5] transition"
-          >
+         <button
+  type="button"
+  onClick={() =>
+    navigate("/Dashboard/reports/ticket-performance")
+  }
+  className="text-left bg-white border border-[#dce6ef] rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-[#9dbbd5] transition h-[170px] w-full"
+>
+  <div className="flex items-start justify-between">
 
-            <div className="flex items-start justify-between">
+    <div className="w-11 h-11 rounded-xl bg-[#eef5f0] flex items-center justify-center">
+      <BarChart3
+        size={21}
+        className="text-[#3f6f55]"
+      />
+    </div>
 
-              <div className="w-11 h-11 rounded-xl bg-[#eef5f0] flex items-center justify-center">
+    <ArrowRight
+      size={18}
+      className="text-[#8ba0b5]"
+    />
 
-                <BarChart3
-                  size={21}
-                  className="text-[#3f6f55]"
-                />
+  </div>
 
-              </div>
+  <h2 className="mt-5 text-[16px] leading-5 font-semibold text-[#173b68]">
+    Ticket Performance
+  </h2>
 
-              <ArrowRight
-                size={18}
-                className="text-[#8ba0b5]"
-              />
-
-            </div>
-
-            <h2 className="mt-5 text-[16px] font-semibold text-[#173b68]">
-              Ticket Performance
-            </h2>
-
-            <p className="mt-2 text-[12px] leading-5 text-[#71869d]">
-              Analyze support executive workload,
-              resolved tickets, pending tickets and
-              resolution time.
-            </p>
-
-          </button>
+  <p className="mt-2 text-[12px] leading-5 text-[#71869d]">
+    Analyze support executive workload,
+    resolved tickets, pending tickets and
+    resolution time.
+  </p>
+</button>
 
         </div>
 
