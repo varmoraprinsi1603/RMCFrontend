@@ -130,7 +130,7 @@ export default function TicketMaster() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [mailSending, setMailSending] = useState(false);   
-
+  const [priorityHistory, setPriorityHistory] = useState([]);
   const [attachments, setAttachments] = useState([]);
   const [attachmentLoading, setAttachmentLoading] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
@@ -143,6 +143,9 @@ export default function TicketMaster() {
   const [error, setError] = useState("");
 
   const [supportExecutives, setSupportExecutives] = useState([]);
+
+  const [commentText, setCommentText] = useState("");
+ 
   /* =======================================================
      AUTH HEADER
   ======================================================= */
@@ -380,6 +383,46 @@ RMC ERP Support
     setAssignmentHistory([]);
   }
 };
+
+const loadTicketPriorityHistory = async (ticketID) => {
+  if (!ticketID) {
+    setPriorityHistory([]);
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/GetTicketPriorityHistory?TicketID=${ticketID}`,
+      {
+        method: "GET",
+        headers: authHeaders,
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result?.Message ||
+        result?.message ||
+        "Failed to load priority history."
+      );
+    }
+
+    setPriorityHistory(
+      result?.Data ||
+      result?.data ||
+      []
+    );
+  } catch (error) {
+    console.error(
+      "Priority History Error:",
+      error
+    );
+
+    setPriorityHistory([]);
+  }
+};
   /* =======================================================
      LOAD TICKET BY ID
   ======================================================= */
@@ -427,6 +470,7 @@ RMC ERP Support
 
       await loadTicketHistory(ticketID);
       await loadTicketAssignmentHistory(ticketID);
+      await loadTicketPriorityHistory(ticketID);
       await loadAttachments(ticketID);
     } catch (err) {
       setError(err.message || "Unable to load ticket.");
@@ -958,6 +1002,7 @@ RMC ERP Support
     clearAttachmentPreviewUrls();
     setAttachments([]);
     setAttachmentError("");
+    setPriorityHistory([]);
 
     setFormData({
       ...emptyForm,
@@ -1049,7 +1094,7 @@ RMC ERP Support
           ),
 
           Priority: formData.Priority,
-
+         
           CreatedBy: createdBy,
           AssignBy: createdBy,
           CreatedDate: formData.CreatedDate || null,
@@ -1098,6 +1143,7 @@ RMC ERP Support
         Description: formData.Description || null,
         CategoryID: Number(formData.CategoryID),
         Priority: formData.Priority,
+        ChangedBy: Number(currentUserId),
         CompanyName: formData.CompanyName || null,
         ContactPerson: formData.ContactPerson || null,
         ContactNo: formData.ContactNo || null,
@@ -1260,6 +1306,61 @@ const handleAssignTicket = async () => {
     );
   } finally {
     setAssigning(false);
+  }
+};
+
+const handleAddComment = async () => {
+  if (!formData.TicketID) {
+    setMessage("Please save the ticket first.");
+    return;
+  }
+
+  if (!commentText.trim()) {
+    setMessage("Please enter a comment.");
+    return;
+  }
+
+  if (!currentUserId) {
+    setMessage("User information not found.");
+    return;
+  }
+
+  setCommentSaving(true);
+  setMessage("");
+
+  try {
+    const params = new URLSearchParams({
+      TicketID: String(formData.TicketID),
+      Comment: commentText.trim(),
+      CommentedBy: String(currentUserId),
+    });
+
+    const response = await fetch(
+      `${API_BASE_URL}/AddTicketComment?${params.toString()}`,
+      {
+        method: "POST",
+        headers: authHeaders(),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || data?.Status === 0) {
+      setMessage(
+        data?.Message ||
+          data?.message ||
+          "Unable to add comment."
+      );
+      return;
+    }
+
+    setCommentText("");
+    setMessage("Comment added successfully.");
+  } catch (error) {
+    console.error("Add Comment Error:", error);
+    setMessage("Unable to add comment.");
+  } finally {
+    setCommentSaving(false);
   }
 };
   /* =======================================================
@@ -1761,13 +1862,74 @@ const activityItems = useMemo(() => {
       }
     );
 
+     const priorityItems =
+    (priorityHistory || []).map(
+      (item, index) => {
+        const oldPriority = getValue(
+          item,
+          "OldPriority",
+          "oldPriority"
+        );
+
+        const newPriority = getValue(
+          item,
+          "NewPriority",
+          "newPriority"
+        );
+
+        const changedByName = getValue(
+          item,
+          "ChangedByName",
+          "changedByName"
+        );
+
+        const changedDate = getValue(
+          item,
+          "ChangedDate",
+          "changedDate"
+        );
+
+        return {
+          id: `priority-${
+            getValue(
+              item,
+              "TicketPriorityHistoryID",
+              "ticketPriorityHistoryID"
+            ) || index
+          }`,
+
+          type: "priority",
+
+          title: "Priority Changed",
+
+          actor:
+            changedByName || "System",
+
+          description:
+            oldPriority
+              ? `${oldPriority} → ${newPriority}`
+              : newPriority || "Priority changed",
+
+          date: changedDate,
+
+          sortDate:
+            new Date(changedDate).getTime() || 0,
+        };
+      }
+    );
+
   return [
     ...statusItems,
     ...assignmentItems,
+    ...priorityItems,
   ].sort(
     (a, b) => a.sortDate - b.sortDate
   );
-}, [history, assignmentHistory]);
+}, [
+  history, 
+  assignmentHistory,
+  priorityHistory,
+]);
 
 
   return (
@@ -2743,25 +2905,32 @@ const activityItems = useMemo(() => {
                 </Field>
 
                 <Field label="Other Remarks">
-                  <textarea
-                    value={
-                      formData.OtherRemarks
-                    }
-                    onChange={(e) =>
-                      handleChange(
-                        "OtherRemarks",
-                        e.target.value
-                      )
-                    }
-                    placeholder="Enter other remarks"
-                    rows={4}
-                    className={textareaClass}
-                  />
-                </Field>
+  <textarea
+    value={formData.OtherRemarks}
+    onChange={(e) =>
+      handleChange(
+        "OtherRemarks",
+        e.target.value
+      )
+    }
+    placeholder="Enter other remarks"
+    rows={4}
+    className={textareaClass}
+  />
+</Field>
 
-               
+<Field label="Comment">
+  <textarea
+    value={commentText}
+    onChange={(e) =>
+      setCommentText(e.target.value)
+    }
+    placeholder="Enter comment"
+    rows={4}
+    className={textareaClass}
+  />
+</Field>
               </div>
-
             </Section>
 
             {/* =================================================
