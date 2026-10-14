@@ -45,6 +45,7 @@ const emptyForm = {
   CategoryName: "",
   Priority: "",
   CreatedDate:"",
+  SLADueDate: "",
   Status: "Open",
   AssignedTo: "",
   AssignedToName: "",
@@ -100,7 +101,7 @@ export default function TicketMaster() {
     localStorage.getItem("RoleName") ||
     localStorage.getItem("roleName") ||
     "User";
-
+  
   /*
     Login implementation may store the user id under any of
     these keys. We do not invent a new API here.
@@ -117,13 +118,32 @@ export default function TicketMaster() {
   const [tickets, setTickets] = useState([]);
   const [categories, setCategories] = useState([]);
   const [history, setHistory] = useState([]);
+  const [commentHistory, setCommentHistory] = useState([]);
   const [assignmentHistory, setAssignmentHistory] = useState([]);
   const [originalAssignedTo, setOriginalAssignedTo] = useState("");
   const [formData, setFormData] = useState(emptyForm);
 
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+  const timer = setInterval(() => {
+    setNow(Date.now());
+  }, 60000);
+
+  return () => clearInterval(timer);
+}, []);
+
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [assignedFilter, setAssignedFilter] = useState("");
+  const [fromDateFilter, setFromDateFilter] = useState("");
+  const [toDateFilter, setToDateFilter] = useState("");
+
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -228,41 +248,84 @@ RMC ERP Support
      LOAD TICKETS
   ======================================================= */
 
-  const loadTickets = async () => {
-    try {
-      setLoading(true);
-      setError("");
+  
+const loadTickets = async (
+  requestedPage = pageNumber
+) => {
+  try {
+    setLoading(true);
+    setError("");
 
-      const response = await fetch(
-        `${API_BASE_URL}/GetTicketList`,
-        {
-          method: "GET",
-          headers: authHeaders,
-        }
-      );
+    const params = new URLSearchParams();
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          result?.Message ||
-            result?.message ||
-            "Unable to load tickets."
-        );
-      }
-
-      const data =
-        result?.Data ??
-        result?.data ??
-        [];
-
-      setTickets(Array.isArray(data) ? data : []);
-    } catch (err) {
-      setError(err.message || "Unable to load tickets.");
-    } finally {
-      setLoading(false);
+    if (searchText.trim()) {
+      params.set("ticketNo", searchText.trim());
     }
-  };
+
+    if (statusFilter) {
+      params.set("status", statusFilter);
+    }
+
+    if (priorityFilter) {
+      params.set("priority", priorityFilter);
+    }
+
+    if (categoryFilter) {
+      params.set("categoryID", categoryFilter);
+    }
+
+    if (assignedFilter) {
+      params.set("assignedTo", assignedFilter);
+    }
+
+    if (fromDateFilter) {
+      params.set("fromDate", fromDateFilter);
+    }
+
+    if (toDateFilter) {
+      params.set("toDate", toDateFilter);
+    }
+
+    params.set("pageNumber", String(requestedPage));
+    params.set("pageSize", String(pageSize));
+
+    const response = await fetch(
+      `${API_BASE_URL}/GetTicketListPaged?${params.toString()}`,
+      {
+        method: "GET",
+        headers: authHeaders,
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result?.Message ||
+          result?.message ||
+          "Unable to load tickets."
+      );
+    }
+
+    const data = result?.Data ?? result?.data ?? [];
+
+    setTickets(Array.isArray(data) ? data : []);
+    setTotalRecords(
+      Number(result?.TotalRecords ?? result?.totalRecords ?? 0)
+    );
+    setTotalPages(
+      Number(result?.TotalPages ?? result?.totalPages ?? 0)
+    );
+  } catch (err) {
+    setError(err.message || "Unable to load tickets.");
+    setTickets([]);
+    setTotalRecords(0);
+    setTotalPages(0);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   /* =======================================================
      LOAD CATEGORIES
@@ -423,6 +486,53 @@ const loadTicketPriorityHistory = async (ticketID) => {
     setPriorityHistory([]);
   }
 };
+
+const loadTicketCommentHistory = async (ticketID) => {
+  if (!ticketID) {
+    setCommentHistory([]);
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/GetTicketCommentHistory?TicketID=${ticketID}`,
+      {
+        method: "GET",
+        headers: authHeaders,
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result?.Message ||
+          result?.message ||
+          "Failed to load comment history."
+      );
+    }
+
+    const data = result?.Data ?? result?.data ?? [];
+
+    setCommentHistory(Array.isArray(data) ? data : []);
+
+    if (Array.isArray(data) && data.length > 0) {
+      const latestComment = data[data.length - 1];
+
+      setCommentText(
+        latestComment.Comment ??
+        latestComment.comment ??
+        latestComment.Comments ??
+        latestComment.comments ??
+        ""
+      );
+    }
+  } catch (error) {
+    console.error("Comment History Error:", error);
+    setCommentHistory([]);
+  }
+};
+
   /* =======================================================
      LOAD TICKET BY ID
   ======================================================= */
@@ -471,6 +581,7 @@ const loadTicketPriorityHistory = async (ticketID) => {
       await loadTicketHistory(ticketID);
       await loadTicketAssignmentHistory(ticketID);
       await loadTicketPriorityHistory(ticketID);
+      await loadTicketCommentHistory(ticketID);
       await loadAttachments(ticketID);
     } catch (err) {
       setError(err.message || "Unable to load ticket.");
@@ -762,18 +873,35 @@ const loadTicketPriorityHistory = async (ticketID) => {
       clearAttachmentPreviewUrls();
     };
   }, []);
+  
+/* =======================================================
+   INITIAL LOAD
+======================================================= */
 
-  /* =======================================================
-     INITIAL LOAD
-  ======================================================= */
+useEffect(() => {
+  if (!token) return;
 
-  useEffect(() => {
-    if (!token) return;
+  loadCategories();
+  loadSupportExecutives();
+}, []);
 
-    loadTickets();
-    loadCategories();
-    loadSupportExecutives();
-  }, []);
+useEffect(() => {
+  if (!token || page !== "list") return;
+
+  loadTickets(pageNumber);
+}, [
+  token,
+  page,
+  pageNumber,
+  pageSize,
+  searchText,
+  statusFilter,
+  priorityFilter,
+  categoryFilter,
+  assignedFilter,
+  fromDateFilter,
+  toDateFilter,
+]);
 
 
   const loadSupportExecutives = async () => {
@@ -851,6 +979,12 @@ const loadTicketPriorityHistory = async (ticketID) => {
       "CreatedDate",
       "createdDate"
     ),
+
+    SLADueDate: getValue(
+      ticket,
+      "SLADueDate",
+      "slaDueDate"
+    ) || "",
 
     Status:
       getValue(ticket, "Status", "status") ||
@@ -1220,6 +1354,51 @@ const loadTicketPriorityHistory = async (ticketID) => {
         After creating a new ticket, backend returns TicketID.
         Open the newly-created ticket in edit mode.
       */
+
+      let savedTicketID =
+  formMode === "new"
+    ? result?.TicketID ?? result?.ticketID
+    : formData.TicketID;
+
+if (commentText.trim() && savedTicketID) {
+  const params = new URLSearchParams({
+    TicketID: String(savedTicketID),
+    Comment: commentText.trim(),
+    CommentedBy: String(currentUserId),
+  });
+
+  const commentResponse = await fetch(
+    `${API_BASE_URL}/AddTicketComment?${params.toString()}`,
+    {
+      method: "POST",
+      headers: authHeaders,
+    }
+  );
+
+  const commentResult =
+    await commentResponse.json();
+
+  console.log(
+    "AddTicketComment Status:",
+    commentResponse.status
+  );
+
+  console.log(
+    "AddTicketComment Response:",
+    commentResult
+  );
+
+  if (
+    !commentResponse.ok ||
+    commentResult?.Status === 0
+  ) {
+    throw new Error(
+      commentResult?.Message ||
+        commentResult?.message ||
+        "Unable to save comment."
+    );
+  }
+}
       if (formMode === "new") {
         const newTicketID =
           result?.TicketID ??
@@ -1234,7 +1413,10 @@ const loadTicketPriorityHistory = async (ticketID) => {
         await loadTicketById(
           formData.TicketID
         );
+        
       }
+
+
     } catch (err) {
       setError(
         err.message ||
@@ -1309,60 +1491,6 @@ const handleAssignTicket = async () => {
   }
 };
 
-const handleAddComment = async () => {
-  if (!formData.TicketID) {
-    setMessage("Please save the ticket first.");
-    return;
-  }
-
-  if (!commentText.trim()) {
-    setMessage("Please enter a comment.");
-    return;
-  }
-
-  if (!currentUserId) {
-    setMessage("User information not found.");
-    return;
-  }
-
-  setCommentSaving(true);
-  setMessage("");
-
-  try {
-    const params = new URLSearchParams({
-      TicketID: String(formData.TicketID),
-      Comment: commentText.trim(),
-      CommentedBy: String(currentUserId),
-    });
-
-    const response = await fetch(
-      `${API_BASE_URL}/AddTicketComment?${params.toString()}`,
-      {
-        method: "POST",
-        headers: authHeaders(),
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok || data?.Status === 0) {
-      setMessage(
-        data?.Message ||
-          data?.message ||
-          "Unable to add comment."
-      );
-      return;
-    }
-
-    setCommentText("");
-    setMessage("Comment added successfully.");
-  } catch (error) {
-    console.error("Add Comment Error:", error);
-    setMessage("Unable to add comment.");
-  } finally {
-    setCommentSaving(false);
-  }
-};
   /* =======================================================
      CHANGE STATUS
   ======================================================= */
@@ -1461,87 +1589,7 @@ const handleAddComment = async () => {
      FILTERED TICKETS
   ======================================================= */
 
-  const filteredTickets = useMemo(() => {
-    const search = searchText
-      .trim()
-      .toLowerCase();
-
-    return tickets.filter((ticket) => {
-      const ticketNo = String(
-        getValue(
-          ticket,
-          "TicketNo",
-          "ticketNo"
-        )
-      ).toLowerCase();
-
-      const title = String(
-        getValue(
-          ticket,
-          "Title",
-          "title"
-        )
-      ).toLowerCase();
-
-      const company = String(
-        getValue(
-          ticket,
-          "CompanyName",
-          "companyName"
-        )
-      ).toLowerCase();
-
-      const contact = String( 
-        getValue(
-          ticket,
-          "ContactPerson",
-          "contactPerson"
-        )
-      ).toLowerCase();
-
-      const status = String(
-        getValue(
-          ticket,
-          "Status",
-          "status"
-        )
-      );
-
-      const priority = String(
-        getValue(
-          ticket,
-          "Priority",
-          "priority"
-        )
-      );
-
-      const matchesSearch =
-        !search ||
-        ticketNo.includes(search) ||
-        title.includes(search) ||
-        company.includes(search) ||
-        contact.includes(search);
-
-      const matchesStatus =
-        !statusFilter ||
-        status === statusFilter;
-
-      const matchesPriority =
-        !priorityFilter ||
-        priority === priorityFilter;
-
-      return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesPriority
-      );
-    });
-  }, [
-    tickets,
-    searchText,
-    statusFilter,
-    priorityFilter,
-  ]);
+   const filteredTickets = tickets;
 
   /* =======================================================
      FORMAT DATE
@@ -1916,12 +1964,60 @@ const activityItems = useMemo(() => {
             new Date(changedDate).getTime() || 0,
         };
       }
-    );
+    );  const commentItems =
+    (commentHistory || []).map(
+      (item, index) => {
+        const comment = getValue(
+          item,
+          "Comment",
+          "comment"
+        );
 
+        const commentedBy = getValue(
+          item,
+          "CommentedByName",
+          "commentedByName"
+        );
+
+        const commentedDate = getValue(
+          item,
+          "CommentedDate",
+          "commentedDate"
+        );
+
+        return {
+          id: `comment-${
+            getValue(
+              item,
+              "TicketCommentHistoryID",
+              "ticketCommentHistoryID"
+            ) || index
+          }`,
+
+          type: "comment",
+
+          title: "Comment Added",
+
+          actor:
+            commentedBy || "User",
+
+          description:
+            comment || "Comment added",
+
+          date: commentedDate,
+
+          sortDate:
+            new Date(commentedDate).getTime() || 0,
+        };
+      }
+    );
+     
+     
   return [
     ...statusItems,
     ...assignmentItems,
     ...priorityItems,
+    ...commentItems,
   ].sort(
     (a, b) => a.sortDate - b.sortDate
   );
@@ -1929,6 +2025,7 @@ const activityItems = useMemo(() => {
   history, 
   assignmentHistory,
   priorityHistory,
+  commentHistory,
 ]);
 
 
@@ -1998,9 +2095,9 @@ const activityItems = useMemo(() => {
             {/* FILTER BAR */}
             <div className="bg-white border border-[#dce6ef] rounded-xl p-3 shadow-[0_5px_20px_rgba(26,65,100,0.04)]">
 
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-7 gap-2 items-center">
 
-                <div className="relative xl:col-span-2">
+                <div className="relative min-w-0">
                   <Search
                     size={16}
                     className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8da0b3]"
@@ -2008,11 +2105,10 @@ const activityItems = useMemo(() => {
 
                   <input
                     value={searchText}
-                    onChange={(e) =>
-                      setSearchText(
-                        e.target.value
-                      )
-                    }
+                    onChange={(e) => {
+                    setSearchText(e.target.value);
+                    setPageNumber(1);
+                  }}
                     placeholder="Search ticket, company, contact or title..."
                     className="w-full h-9 rounded-lg border border-[#d9e4ee] bg-[#fbfdff] pl-9 pr-3 text-[13px] outline-none focus:border-[#5c91bf]"
                   />
@@ -2020,11 +2116,10 @@ const activityItems = useMemo(() => {
 
                 <select
                   value={statusFilter}
-                  onChange={(e) =>
-                    setStatusFilter(
-                      e.target.value
-                    )
-                  }
+                  onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPageNumber(1);
+                }}
                   className="h-9 rounded-lg border border-[#d9e4ee] bg-[#fbfdff] px-3 text-[13px] outline-none focus:border-[#5c91bf]"
                 >
                   <option value="">
@@ -2045,11 +2140,10 @@ const activityItems = useMemo(() => {
 
                 <select
                   value={priorityFilter}
-                  onChange={(e) =>
-                    setPriorityFilter(
-                      e.target.value
-                    )
-                  }
+                  onChange={(e) => {
+                  setPriorityFilter(e.target.value);
+                  setPageNumber(1);
+                  }}
                   className="h-9 rounded-lg border border-[#d9e4ee] bg-[#fbfdff] px-3 text-[13px] outline-none focus:border-[#5c91bf]"
                 >
                   <option value="">
@@ -2068,8 +2162,73 @@ const activityItems = useMemo(() => {
                   )}
                 </select>
 
-              </div>
-            </div>
+{/* CATEGORY FILTER */}
+<select
+  value={categoryFilter}
+  onChange={(e) => {
+    setCategoryFilter(e.target.value);
+    setPageNumber(1);
+  }}
+ className="w-full min-w-0 h-9 rounded-lg border border-[#d9e4ee] bg-[#fbfdff] px-3 text-[13px] outline-none focus:border-[#5c91bf]"
+>
+  <option value="">All Categories</option>
+  {categories.map((category, index) => (
+    <option
+      key={getValue(category, "CategoryID", "categoryID") ?? index}
+      value={getValue(category, "CategoryID", "categoryID") ?? ""}
+    >
+      {getValue(category, "CategoryName", "categoryName") || "Category"}
+    </option>
+  ))}
+</select>
+
+{/* ASSIGNED EMPLOYEE FILTER */}
+<select
+  value={assignedFilter}
+  onChange={(e) => {
+    setAssignedFilter(e.target.value);
+    setPageNumber(1);
+  }}
+  className="w-full min-w-0 h-9 rounded-lg border border-[#d9e4ee] bg-[#fbfdff] px-3 text-[13px] outline-none focus:border-[#5c91bf]"
+>
+  <option value="">All Assigned Employees</option>
+  {supportExecutives.map((employee, index) => (
+    <option
+      key={getValue(employee, "UserID", "userID") ?? index}
+      value={getValue(employee, "UserID", "userID") ?? ""}
+    >
+      {getValue(employee, "UserName", "userName") ||
+       getValue(employee, "EmployeeName", "employeeName") ||
+       getValue(employee, "FullName", "fullName") ||
+       "Employee"}
+    </option>
+  ))}
+</select>
+
+{/* FROM DATE */}
+<input
+  type="date"
+  value={fromDateFilter}
+  onChange={(e) => {
+    setFromDateFilter(e.target.value);
+    setPageNumber(1);
+  }}
+ className="w-full min-w-0 h-9 rounded-lg border border-[#d9e4ee] bg-[#fbfdff] px-3 text-[13px] outline-none focus:border-[#5c91bf]"
+/>
+
+{/* TO DATE */}
+<input
+  type="date"
+  value={toDateFilter}
+  min={fromDateFilter || undefined}
+  onChange={(e) => {
+    setToDateFilter(e.target.value);
+    setPageNumber(1);
+  }}
+  className="w-full min-w-0 h-9 rounded-lg border border-[#d9e4ee] bg-[#fbfdff] px-3 text-[13px] outline-none focus:border-[#5c91bf]"
+/>
+    </div>
+        </div>
 
             {/* TICKETS */}
             {loading && tickets.length === 0 ? (
@@ -2173,6 +2332,17 @@ const activityItems = useMemo(() => {
                         "createdDate"
                       );
 
+                    const slaDueDate =
+                      ticket.SLADueDate ||
+                      ticket.slaDueDate ||
+                    "";
+                    
+                    const slaStatus =
+                      getSLAStatus(
+                      slaDueDate,
+                      now
+                      );
+
                     return (
                       <button
                         key={
@@ -2203,6 +2373,8 @@ const activityItems = useMemo(() => {
 
       <PriorityBadge priority={priority} />
 
+      <SLABadge status={slaStatus} />
+
     </div>
 
     <div className="mt-2 text-[14px] font-semibold text-[#294e70] truncate">
@@ -2217,7 +2389,7 @@ const activityItems = useMemo(() => {
 
 
   {/* RIGHT SIDE - CUSTOMER DETAILS */}
-  <div className="grid grid-cols-2 gap-x-10 gap-y-2 xl:w-[52%] xl:flex-none">
+  <div className="grid grid-cols-2 gap-x-10 gap-y-2 xl:w-[40%] xl:flex-none xl:ml-10">
 
     <InfoSmall
       icon={
@@ -2243,7 +2415,7 @@ const activityItems = useMemo(() => {
 {/* BOTTOM INFO */}
 <div className="mt-2 pt-2 border-t border-[#edf1f5]">
 
-  <div className="grid grid-cols-3 items-center gap-3 text-[11px] text-[#92a1b0]">
+  <div className="grid grid-cols-4 items-center gap-3 text-[11px] text-[#92a1b0]">
 
     {/* ENTRY BY */}
     <span className="min-w-0 truncate">
@@ -2270,21 +2442,114 @@ const activityItems = useMemo(() => {
         {formatDate(createdDate)}
       </span>
     </span>
-
+     
+    <span className="min-w-0 truncate">
+      SLA Due:{" "}
+      <span className="text-[#627b92]">
+        {formatDateTime(slaDueDate)}
+      </span>
+    </span>
   </div>
 
-</div>
-                        
+</div>              
                       </button>
                     );
                   }
                 )}
 
               </div>
-            )}
+              )}
 
-          </div>
-        )}
+{/* PAGINATION START */}
+{totalPages > 0 && (
+  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-white border border-[#dce6ef] rounded-xl">
+
+    {/* RECORD INFORMATION */}
+    <div className="flex flex-wrap items-center gap-3 text-[12px] text-[#627b92]">
+      <span>
+        Showing{" "}
+        <span className="font-semibold text-[#294e70]">
+          {(pageNumber - 1) * pageSize + 1}
+        </span>
+        {" "}–{" "}
+        <span className="font-semibold text-[#294e70]">
+          {Math.min(pageNumber * pageSize, totalRecords)}
+        </span>
+        {" "}of{" "}
+        <span className="font-semibold text-[#294e70]">
+          {totalRecords}
+        </span>
+        {" "}tickets
+      </span>
+
+      {/* PAGE SIZE */}
+      <div className="flex items-center gap-2">
+        <span>Rows:</span>
+        <select
+          value={pageSize}
+          onChange={(e) => {
+            setPageSize(Number(e.target.value));
+            setPageNumber(1);
+          }}
+          className="h-8 rounded-md border border-[#d9e4ee] bg-white px-2 text-[12px] outline-none focus:border-[#5c91bf]"
+        >
+          <option value={10}>10</option>
+          <option value={25}>25</option>
+          <option value={50}>50</option>
+        </select>
+      </div>
+    </div>
+
+    {/* PAGE NAVIGATION */}
+    <div className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={() =>
+          setPageNumber((prev) => Math.max(1, prev - 1))
+        }
+        disabled={pageNumber <= 1}
+        className="h-8 min-w-8 px-2 rounded-md border border-[#d9e4ee] text-[#52708d] hover:bg-[#f3f7fb] disabled:opacity-40 disabled:cursor-not-allowed"
+        aria-label="Previous page"
+      >
+        ‹
+      </button>
+
+      {Array.from(
+        { length: Math.min(5, totalPages) },
+        (_, index) =>
+          Math.max(1, Math.min(pageNumber - 2, totalPages - 4)) + index
+      ).map((page) => (
+        <button
+          key={page}
+          type="button"
+          onClick={() => setPageNumber(page)}
+          className={`h-8 min-w-8 px-2 rounded-md border text-[12px] font-medium ${
+            pageNumber === page
+              ? "bg-[#34495e] border-[#34495e] text-white"
+              : "border-[#d9e4ee] text-[#52708d] hover:bg-[#f3f7fb]"
+          }`}
+        >
+          {page}
+        </button>
+      ))}
+
+      <button
+        type="button"
+        onClick={() =>
+          setPageNumber((prev) => Math.min(totalPages, prev + 1))
+        }
+        disabled={pageNumber >= totalPages}
+        className="h-8 min-w-8 px-2 rounded-md border border-[#d9e4ee] text-[#52708d] hover:bg-[#f3f7fb] disabled:opacity-40 disabled:cursor-not-allowed"
+        aria-label="Next page"
+      >
+        ›
+      </button>
+    </div>
+  </div>
+)}
+{/* PAGINATION END */}
+              </div>
+            )}
 
         {/* =================================================
             FORM PAGE
@@ -2709,7 +2974,28 @@ const activityItems = useMemo(() => {
                     )}
                   </SelectBox>
                 </Field>
+ 
+               <Field label="SLA Due Date">
+  <input
+    value={
+      formData.SLADueDate
+        ? formatDateTime(formData.SLADueDate)
+        : "—"
+    }
+    readOnly
+    className={`${inputClass} bg-[#f7f9fb] cursor-not-allowed`}
+  />
+</Field>
 
+<Field label="SLA Status">
+   <SLABadge
+  status={getSLAStatus(
+    formData.SLADueDate,
+    now
+  )}
+/>
+  
+</Field>
               </div>
 
             </Section>
@@ -2929,6 +3215,7 @@ const activityItems = useMemo(() => {
     rows={4}
     className={textareaClass}
   />
+
 </Field>
               </div>
             </Section>
@@ -3462,6 +3749,44 @@ function PriorityBadge({ priority }) {
       {value}
     </span>
   );
+}
+
+/* =========================================================
+   SLA BADGE
+========================================================= */
+function SLABadge({ status }) {
+  const value = status || "—";
+
+  return (
+    <span className="inline-flex items-center px-2.5 py-1 rounded-full border border-[#dce3e9] bg-[#f1f4f7] text-[#5e7081] text-[10px] font-semibold whitespace-nowrap">
+      {value}
+    </span>
+  );
+}
+
+function getSLAStatus(dueDate) {
+  if (!dueDate) return "—";
+
+  const due = new Date(dueDate).getTime();
+
+  if (Number.isNaN(due)) {
+    return "—";
+  }
+
+  const now = Date.now();
+
+  if (due <= now) {
+    return "SLA Breached";
+  }
+
+  const remainingHours =
+    (due - now) / (1000 * 60 * 60);
+
+  if (remainingHours <= 2) {
+    return "At Risk";
+  }
+
+  return "Within SLA";
 }
 
 /* =========================================================

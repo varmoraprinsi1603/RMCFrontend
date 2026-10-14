@@ -38,8 +38,21 @@ function Dashboard() {
   const username = localStorage.getItem("username") || "User";
   const roleName = localStorage.getItem("RoleName") || "User";
 
+  
+  const normalizedRole = roleName
+    .toLowerCase()
+    .replace(/[\s_-]/g, "");
+
+  const canViewEscalatedTickets = [
+    "admin",
+    "seniorsupport",
+  ].includes(normalizedRole);
+
+  const [ticketMenuOpen, setTicketMenuOpen] = useState(true);
+
+
   // =====================================================
-  // CHECK CURRENT PAGE
+  // CHECK CURRENT PAG
   // =====================================================
 
   const isDashboardPage =
@@ -266,22 +279,69 @@ function Dashboard() {
               Operations
             </div>
           )}
+         
+{/* Ticket Master Menu */}
 
-          {/* Ticket Master */}
+<div>
+  <button
+    type="button"
+    onClick={() => {
+      if (collapsed) {
+        navigate("/Dashboard/tickets");
+      } else {
+        setTicketMenuOpen(!ticketMenuOpen);
+      }
+    }}
+    className="w-full flex items-center gap-3 h-[43px] px-3 rounded-lg text-[13px] font-medium text-[#c7d7e7] hover:bg-[#154d7f] hover:text-white transition"
+  >
+    <Ticket size={18} />
 
-          <NavLink
-            to="/Dashboard/tickets"
-            className={menuClass}
-          >
+    {!collapsed && (
+      <>
+        <span className="flex-1 text-left">Ticket</span>
 
-            <Ticket size={18} />
+        {ticketMenuOpen ? (
+          <ChevronDown size={15} />
+        ) : (
+          <ChevronRight size={15} />
+        )}
+      </>
+    )}
+  </button>
 
-            {!collapsed && (
-              <span>Ticket Master</span>
-            )}
+  {!collapsed && ticketMenuOpen && (
+    <div className="ml-4 mt-1 pl-3 border-l border-[#315a7b] space-y-1">
+      <NavLink
+        to="/Dashboard/tickets"
+        end
+        className={({ isActive }) =>
+          `w-full flex items-center h-[36px] px-3 rounded-md text-[12px] transition ${
+            isActive
+              ? "bg-[#1b6bb3] text-white"
+              : "text-[#a9c0d5] hover:bg-[#154d7f] hover:text-white"
+          }`
+        }
+      >
+        Ticket Master
+      </NavLink>
 
-          </NavLink>
-
+      {canViewEscalatedTickets && (
+        <NavLink
+          to="/Dashboard/escalated-tickets"
+          className={({ isActive }) =>
+            `w-full flex items-center h-[36px] px-3 rounded-md text-[12px] transition ${
+              isActive
+                ? "bg-[#1b6bb3] text-white"
+                : "text-[#a9c0d5] hover:bg-[#154d7f] hover:text-white"
+            }`
+          }
+        >
+          Escalated Tickets
+        </NavLink>
+      )}
+    </div>
+  )}
+</div>
           {/* User Management - Admin Only */}
 
           {roleName === "Admin" && (

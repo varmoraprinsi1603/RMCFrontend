@@ -10,6 +10,7 @@ import { useEffect } from "react";
 import Login from "./Login";
 import Dashboard from "./Dashboard";
 import TicketMaster from "./TicketMaster";
+import EscalatedTickets from "./EscalatedTickets";
 import UserManagement from "./UserManagement";
 import Reports from "./Reports";
 
@@ -125,6 +126,13 @@ function App() {
             element={<TicketMaster />}
           />
 
+           
+          {/* Escalated Tickets */}
+
+          <Route
+          path="escalated-tickets"
+          element={<EscalatedTickets />}
+          />
 
           {/* User Management */}
 
