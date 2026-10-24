@@ -44,10 +44,7 @@ function EscalatedTickets() {
     .toLowerCase()
     .replace(/[\s_-]/g, "");
 
-  const canViewEscalatedTickets = [
-    "admin",
-    "seniorsupport",
-  ].includes(normalizedRole);
+  const canViewEscalatedTickets = normalizedRole === "admin";
 
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -146,7 +143,7 @@ function EscalatedTickets() {
             </p>
             <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
               <span className="h-2 w-2 rounded-full bg-red-500" />
-              Admin &amp; Senior Support
+              Admin Only
             </div>
           </div>
         </div>

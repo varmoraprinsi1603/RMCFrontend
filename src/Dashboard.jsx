@@ -43,10 +43,7 @@ function Dashboard() {
     .toLowerCase()
     .replace(/[\s_-]/g, "");
 
-  const canViewEscalatedTickets = [
-    "admin",
-    "seniorsupport",
-  ].includes(normalizedRole);
+  const canViewEscalatedTickets = normalizedRole === "admin";
 
   const [ticketMenuOpen, setTicketMenuOpen] = useState(true);
 

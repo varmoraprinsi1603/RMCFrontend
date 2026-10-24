@@ -25,7 +25,7 @@ function UserManagement() {
     UserID: 0,
     UserName: "",
     Password: "",
-    Name: "",
+
     EmailID: "",
     Mobile: "",
     RoleID: "",
@@ -191,67 +191,54 @@ function UserManagement() {
   // FILTERED USERS
   // =========================================================
 
-  const filteredUsers = useMemo(() => {
-    const searchValue = search.trim().toLowerCase();
+ const filteredUsers = useMemo(() => {
+  const searchValue = search.trim().toLowerCase();
 
-    return users.filter((user) => {
-      const userName =
-        user.Name ?? user.name ?? "";
+  return users.filter((user) => {
+    const loginName =
+      user.UserName ?? user.userName ?? "";
 
-      const loginName =
-        user.UserName ?? user.userName ?? "";
+    const email =
+      user.EmailID ?? user.emailID ?? "";
 
-      const email =
-        user.EmailID ?? user.emailID ?? "";
+    const mobile =
+      user.Mobile ?? user.mobile ?? "";
 
-      const mobile =
-        user.Mobile ?? user.mobile ?? "";
+    const userRoleID =
+      user.RoleID ?? user.roleID;
 
-      const userRoleID =
-        user.RoleID ?? user.roleID;
+    const isActive =
+      user.IsActive ?? user.isActive;
 
-      const isActive =
-        user.IsActive ?? user.isActive;
+    const matchesSearch =
+      !searchValue ||
+      String(loginName).toLowerCase().includes(searchValue) ||
+      String(email).toLowerCase().includes(searchValue) ||
+      String(mobile).toLowerCase().includes(searchValue);
 
-      const matchesSearch =
-        !searchValue ||
-        String(userName)
-          .toLowerCase()
-          .includes(searchValue) ||
-        String(loginName)
-          .toLowerCase()
-          .includes(searchValue) ||
-        String(email)
-          .toLowerCase()
-          .includes(searchValue) ||
-        String(mobile)
-          .toLowerCase()
-          .includes(searchValue);
+    const matchesRole =
+      !roleFilter ||
+      String(userRoleID) === String(roleFilter);
 
-      const matchesRole =
-        !roleFilter ||
-        String(userRoleID) === String(roleFilter);
+    const matchesStatus =
+      !statusFilter ||
+      (statusFilter === "Active" &&
+        isActive === true) ||
+      (statusFilter === "Inactive" &&
+        isActive === false);
 
-      const matchesStatus =
-        !statusFilter ||
-        (statusFilter === "Active" &&
-          isActive === true) ||
-        (statusFilter === "Inactive" &&
-          isActive === false);
-
-      return (
-        matchesSearch &&
-        matchesRole &&
-        matchesStatus
-      );
-    });
-  }, [
-    users,
-    search,
-    roleFilter,
-    statusFilter,
-  ]);
-
+    return (
+      matchesSearch &&
+      matchesRole &&
+      matchesStatus
+    );
+  });
+}, [
+  users,
+  search,
+  roleFilter,
+  statusFilter,
+]);
   // =========================================================
   // COUNTS
   // =========================================================
@@ -298,7 +285,7 @@ function UserManagement() {
       UserID: 0,
       UserName: "",
       Password: "",
-      Name: "",
+      
       EmailID: "",
       Mobile: "",
       RoleID:
@@ -364,11 +351,6 @@ function UserManagement() {
 
         Password: "",
 
-        Name:
-          data.Name ??
-          data.name ??
-          "",
-
         EmailID:
           data.EmailID ??
           data.emailID ??
@@ -433,7 +415,7 @@ function UserManagement() {
     const payload = {
       UserName: formData.UserName,
       Password: formData.Password,
-      Name: formData.Name,
+      
       EmailID: formData.EmailID,
       Mobile: formData.Mobile,
       RoleID: Number(formData.RoleID),
@@ -481,7 +463,7 @@ function UserManagement() {
       UserID: Number(formData.UserID),
       UserName: formData.UserName,
       Password: formData.Password,
-      Name: formData.Name,
+      
       EmailID: formData.EmailID,
       Mobile: formData.Mobile,
       RoleID: Number(formData.RoleID),
@@ -529,11 +511,6 @@ function UserManagement() {
 
     setMessage("");
     setError("");
-
-    if (!formData.Name.trim()) {
-      setError("Name is required.");
-      return;
-    }
 
     if (!formData.UserName.trim()) {
       setError("Username is required.");
@@ -598,8 +575,8 @@ function UserManagement() {
 
   const handleDeactivate = async (user) => {
     const userName =
-      user.Name ??
-      user.name ??
+      user.UserName ??
+      user.userName ??
       "this user";
 
     const confirmDeactivate =
@@ -904,11 +881,6 @@ function UserManagement() {
                   user.UserID ??
                   user.userID;
 
-                const userName =
-                  user.Name ??
-                  user.name ??
-                  "";
-
                 const loginName =
                   user.UserName ??
                   user.userName ??
@@ -945,19 +917,15 @@ function UserManagement() {
                   >
 
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[#34495e] text-[12px] font-bold text-white">
-                      {getInitials(userName)}
+                      {getInitials(loginName)}
                     </div>
 
                     <div className="min-w-0 flex-1">
 
-                      <div className="truncate text-[13px] font-bold text-[#273746]">
-                        {userName || "-"}
-                      </div>
-
-                      <div className="mt-0.5 truncate text-[11px] text-[#8a949e]">
-                        @{loginName || "-"}
-                      </div>
-
+                       <div className="mt-0.5 truncate text-[12px] font-semibold text-[#35424e]">
+                         {loginName || "-"}
+                       </div>
+                       
                       <div className="mt-1.5 flex items-center gap-2">
 
                         <span className="text-[10px] text-[#69747e]">
@@ -1027,25 +995,19 @@ function UserManagement() {
 
                   <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded bg-[#34495e] text-[16px] font-bold text-white">
                     {getInitials(
-                      selectedUser.Name ??
-                        selectedUser.name
+                        selectedUser.UserName ??
+                          selectedUser.userName ??
+                         ""
                     )}
                   </div>
 
                   <div>
 
                     <h2 className="text-[18px] font-bold text-[#273746]">
-                      {selectedUser.Name ??
-                        selectedUser.name ??
-                        "-"}
-                    </h2>
-
-                    <div className="mt-0.5 text-[11px] text-[#89929b]">
-                      @
                       {selectedUser.UserName ??
-                        selectedUser.userName ??
-                        "-"}
-                    </div>
+                       selectedUser.userName ??
+                       "-"}
+                    </h2>
 
                     <div
                       className={`mt-1 text-[10px] font-semibold ${
@@ -1099,6 +1061,7 @@ function UserManagement() {
 
               </div>
 
+              
               {/* INFORMATION */}
 
               <div className="border-b border-[#e7eaed] p-5">
@@ -1108,18 +1071,6 @@ function UserManagement() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
-
-                  <div className="rounded border border-[#e2e6e9] bg-[#f7f8f9] p-3">
-                    <div className="mb-1 text-[9px] font-bold tracking-wider text-[#8a949d]">
-                      FULL NAME
-                    </div>
-
-                    <div className="text-[12px] font-semibold text-[#35424e]">
-                      {selectedUser.Name ??
-                        selectedUser.name ??
-                        "-"}
-                    </div>
-                  </div>
 
                   <div className="rounded border border-[#e2e6e9] bg-[#f7f8f9] p-3">
                     <div className="mb-1 text-[9px] font-bold tracking-wider text-[#8a949d]">
@@ -1298,28 +1249,6 @@ function UserManagement() {
             >
 
               <div className="flex-1 overflow-y-auto p-4">
-
-                {/* NAME */}
-
-                <div className="mb-3">
-
-                  <label className="mb-1 block text-[10px] font-bold text-[#68737d]">
-                    FULL NAME{" "}
-                    <span className="text-[#a15b5b]">
-                      *
-                    </span>
-                  </label>
-
-                  <input
-                    type="text"
-                    name="Name"
-                    value={formData.Name}
-                    onChange={handleChange}
-                    placeholder="Enter full name"
-                    className="h-9 w-full rounded border border-[#d5dbe0] px-2.5 text-[12px] text-[#34424e] outline-none focus:border-[#52718f] focus:ring-2 focus:ring-[#52718f]/10"
-                  />
-
-                </div>
 
                 {/* USERNAME */}
 

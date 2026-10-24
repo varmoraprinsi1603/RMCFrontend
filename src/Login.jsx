@@ -209,7 +209,7 @@ function Login() {
       absolute
       top-[7%]
       right-[7%]
-      w-[190px]
+      w-[190px] 
       h-[330px]
       rotate-[6deg]
       rounded-[28px]

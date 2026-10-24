@@ -85,6 +85,23 @@ const statusOptions = [
   "Closed",
 ];
 
+const getAllowedStatusOptions = (role) => {
+  const normalizedRole = role?.trim().toLowerCase();
+
+  if (normalizedRole === "developer") {
+    return ["In Progress", "Resolved"];
+  }
+
+  if (
+    normalizedRole === "admin" ||
+    normalizedRole === "support executive" ||
+    normalizedRole === "sales/marketing"
+  ) {
+    return ["Open", "In Progress", "Resolved", "Closed"];
+  }
+
+  return [];
+};
 /* =========================================================
    MAIN COMPONENT
 ========================================================= */
@@ -161,6 +178,16 @@ export default function TicketMaster() {
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const errorRef = useRef(null);
+
+  useEffect(() => {
+  if (error) {
+    errorRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+  }
+}, [error]);
 
   const [supportExecutives, setSupportExecutives] = useState([]);
 
@@ -248,8 +275,7 @@ RMC ERP Support
      LOAD TICKETS
   ======================================================= */
 
-  
-const loadTickets = async (
+  const loadTickets = async (
   requestedPage = pageNumber
 ) => {
   try {
@@ -568,7 +594,11 @@ const loadTicketCommentHistory = async (ticketID) => {
         throw new Error("Ticket data not found.");
       }
 
+      
+   
       const mapped = mapTicketToForm(ticket);
+
+    
 
       setFormData(mapped);
 
@@ -1298,6 +1328,29 @@ useEffect(() => {
         }
       );
 
+      if (!response.ok) {
+  if (response.status === 403) {
+    throw new Error(
+      "You don't have permission to edit ticket details. Please contact your administrator."
+    );
+  }
+
+  const errorText = await response.text();
+  let errorResult = {};
+
+  try {
+    errorResult = JSON.parse(errorText);
+  } catch {
+    // Response JSON format mein nahi hai.
+  }
+
+  throw new Error(
+    errorResult?.Message ||
+    errorResult?.message ||
+    "Unable to update ticket. Please try again."
+  );
+}
+
       // First-time assignment
       if (
         !originalAssignedTo &&
@@ -1552,16 +1605,43 @@ const handleAssignTicket = async () => {
         }
       );
 
-      const result = await response.json();
+     
+const responseText = await response.text();
 
-      if (!response.ok) {
-        throw new Error(
-          result?.Message ||
-            result?.message ||
-            "Unable to change status."
-        );
-      }
+let result = {};
 
+if (responseText) {
+  try {
+    result = JSON.parse(responseText);
+  } catch {
+    result = {};
+  }
+}
+
+if (!response.ok) {
+  const serverMessage =
+    result?.Message || result?.message;
+
+  if (serverMessage) {
+    throw new Error(serverMessage);
+  }
+
+  if (response.status === 401) {
+    throw new Error(
+      "Your session has expired. Please log in again."
+    );
+  }
+
+  if (response.status === 403) {
+    throw new Error(
+      "You are not allowed to change this ticket's status."
+    );
+  }
+
+  throw new Error(
+    "Unable to change the ticket status. Please try again or contact your administrator."
+  );
+}
       setFormData((prev) => ({
         ...prev,
         Status: newStatus,
@@ -2059,22 +2139,20 @@ const activityItems = useMemo(() => {
                     </p>
                   </div>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                
-                <button
-                  type="button"
-                  onClick={openNewTicket}
-                  className="h-10 px-4 rounded-lg bg-[#34495e] text-white text-[13px] font-semibold hover:bg-[#34495e] shadow-[0_7px_18px_rgba(23,107,179,0.18)] flex items-center gap-2"
-                >
-                  <Plus size={16} />
-                  New Ticket
-                </button>
-
-              </div>
+              </div>            
+{localStorage.getItem("RoleName")?.trim().toLowerCase() === "user" && (
+  <div className="flex items-center gap-2">
+    <button
+      type="button"
+      onClick={openNewTicket}
+      className="h-10 px-4 rounded-lg bg-[#34495e] text-white text-[13px] font-semibold hover:bg-[#34495e] shadow-[0_7px_18px_rgba(23,107,179,0.18)] flex items-center gap-2"
+    >
+      <Plus size={16} />
+      New Ticket
+    </button>
+  </div>
+)}
             </div>
-
             {/* MESSAGE */}
             {message && (
               <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-[13px] text-green-700">
@@ -2083,7 +2161,11 @@ const activityItems = useMemo(() => {
             )}
 
             {error && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 flex items-start gap-2">
+  <div
+    ref={errorRef}
+    role="alert"
+    className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 flex items-start gap-2"
+  >
                 <AlertCircle
                   size={16}
                   className="mt-0.5 shrink-0"
@@ -2630,7 +2712,11 @@ const activityItems = useMemo(() => {
             )}
 
             {error && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 flex items-start gap-2">
+  <div
+    ref={errorRef}
+    role="alert"
+    className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 flex items-start gap-2"
+  >
                 <AlertCircle
                   size={16}
                   className="mt-0.5 shrink-0"
@@ -3103,29 +3189,25 @@ const activityItems = useMemo(() => {
       )}
   </div>
 </Field>
-                <Field label="Status">
-                  <SelectBox
-                    value={
-                      formData.Status ||
-                      "Open"
-                    }
-                    onChange={(e) =>
-                      handleStatusChange(
-                        e.target.value
-                      )
-                    }
-                  >
-                    {statusOptions.map(
-                      (status) => (
-                        <option
-                          key={status}
-                          value={status}
-                        >
-                          {status}
-                        </option>
-                      )
-                    )}
-                  </SelectBox>
+<Field label="Status">
+  <SelectBox
+  value={formData.Status || "Open"}
+  onChange={(e) =>
+    handleStatusChange(e.target.value)
+  }
+>
+  {!getAllowedStatusOptions(roleName).includes(formData.Status) && (
+    <option value={formData.Status}>
+      Current: {formData.Status}
+    </option>
+  )}
+
+  {getAllowedStatusOptions(roleName).map((status) => (
+    <option key={status} value={status}>
+      {status}
+    </option>
+  ))}
+</SelectBox>
                 </Field>
 
                 <Field label="Entry By">
